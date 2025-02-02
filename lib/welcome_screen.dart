@@ -57,29 +57,28 @@ void _showUserSelectionSheet(BuildContext context) {
                           children: [
                             Expanded(
                                 child:
-                                    _buildOption(context, "Admin", "/admin")),
+                                    _buildOption(context, "Admin", "/login")),
                             const SizedBox(width: 8),
                             Expanded(
                                 child: _buildOption(
-                                    context, "Job Seeker", "/job-seeker")),
+                                    context, "Job Seeker", "/login")),
                             const SizedBox(width: 8),
                             Expanded(
                                 child: _buildOption(
-                                    context, "Job Provider", "/job-provider")),
+                                    context, "Job Provider", "/login")),
                             const SizedBox(width: 8),
                             Expanded(
                                 child:
-                                    _buildOption(context, "Agent", "/agent")),
+                                    _buildOption(context, "Agent", "/login")),
                           ],
                         )
                       else
                         Column(
                           children: [
-                            _buildOption(context, "Admin", "/admin"),
-                            _buildOption(context, "Job Seeker", "/job-seeker"),
-                            _buildOption(
-                                context, "Job Provider", "/job-provider"),
-                            _buildOption(context, "Agent", "/agent"),
+                            _buildOption(context, "Admin", "/login"),
+                            _buildOption(context, "Job Seeker", "/login"),
+                            _buildOption(context, "Job Provider", "/login"),
+                            _buildOption(context, "Agent", "/login"),
                           ],
                         ),
                       const SizedBox(height: 10),
