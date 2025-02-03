@@ -14,6 +14,16 @@ dependencies:
   go_router: ^14.7.2
   dio: ^5.8.0+1
   flutter_riverpod: ^2.6.1
+  font_awesome_flutter: ^10.7.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF" # Optional: Set a background color
+  adaptive_icon_foreground: "assets/images/logo.png" # Foreground for adaptive icons
+  remove_alpha_ios: true
 
 dev_dependencies:
   flutter_test:

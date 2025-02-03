@@ -57,7 +57,7 @@ void _showUserSelectionSheet(BuildContext context) {
                           children: [
                             Expanded(
                                 child:
-                                    _buildOption(context, "Admin", "/login")),
+                                    _buildOption(context, "Admin", "/admindashboard")),
                             const SizedBox(width: 8),
                             Expanded(
                                 child: _buildOption(
@@ -75,7 +75,7 @@ void _showUserSelectionSheet(BuildContext context) {
                       else
                         Column(
                           children: [
-                            _buildOption(context, "Admin", "/login"),
+                            _buildOption(context, "Admin", "/admindashboard"),
                             _buildOption(context, "Job Seeker", "/login"),
                             _buildOption(context, "Job Provider", "/login"),
                             _buildOption(context, "Agent", "/login"),

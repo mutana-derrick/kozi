@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kozi/authentication/login_screen.dart';
+import 'package:kozi/admin/screens/dashboard_screen.dart';
+import 'package:kozi/authentication/screens/login_screen.dart';
 import 'package:kozi/welcome_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +21,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         builder: (BuildContext context, GoRouterState state) {
           return const LoginScreen();
+        },
+      ),  
+      GoRoute(
+        path: '/admindashboard',
+        builder: (BuildContext context, GoRouterState state) {
+          return const DashboardScreen();
         },
       ),      
     ],
