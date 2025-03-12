@@ -15,7 +15,7 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'SDMS',
+      title: 'Kozi',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFEA60A7)),
         useMaterial3: true,
