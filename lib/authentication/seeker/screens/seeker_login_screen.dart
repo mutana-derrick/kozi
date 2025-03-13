@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 // Provider for password visibility state
 final passwordVisibilityProvider = StateProvider<bool>((ref) => false);
 
-class LoginScreen extends ConsumerWidget {
-  const LoginScreen({super.key});
+class SeekerLoginScreen extends ConsumerWidget {
+  const SeekerLoginScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

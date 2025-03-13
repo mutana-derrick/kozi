@@ -1,4 +1,3 @@
-// lib/screens/welcome_screen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,105 +9,169 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            children: [
-              // Logo section
-              Expanded(
-                child: Center(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/splash/splash_background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                // Logo section
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/logo.png',
+                          height: 150, // Increased logo size
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "Find trusted workers or jobs easily. \n Let's start!",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Continue as button
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 40.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: 80,
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "Find trusted workers or jobs easily. Let's start!",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                      ElevatedButton(
+                        onPressed: () => _showUserTypeBottomSheet(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEA60A7),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Continue as",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-
-              // Continue as button
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      "Continue as",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18, 
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildUserTypeButton(
-                      context,
-                      "Job Seeker",
-                      FontAwesomeIcons.user,
-                      "/login",
-                    ),
-                    const SizedBox(height: 12),
-                    _buildUserTypeButton(
-                      context,
-                      "Job Provider",
-                      FontAwesomeIcons.building,
-                      "/login",
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildUserTypeButton(
+  void _showUserTypeBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      transitionAnimationController: AnimationController(
+        duration: const Duration(milliseconds: 300),
+        vsync: Navigator.of(context),
+      ),
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 50,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "Continue as",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildBottomSheetButton(
+              context,
+              "Job Seeker",
+              FontAwesomeIcons.user,
+              "/seekerlogin",
+            ),
+            const SizedBox(height: 16),
+            _buildBottomSheetButton(
+              context,
+              "Job Provider",
+              FontAwesomeIcons.building,
+              "/providerlogin",
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomSheetButton(
     BuildContext context,
     String title,
     IconData icon,
     String route,
   ) {
     return ElevatedButton(
-      onPressed: () => context.push(route),
+      onPressed: () {
+        Navigator.pop(context); // Close bottom sheet
+        context.push(route);
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        elevation: 0,
-        side: BorderSide(color: Colors.grey.shade300),
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        elevation: 1,
+        side: BorderSide(color: Colors.grey.shade200),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       child: Row(
         children: [
           FaIcon(
             icon,
-            size: 20,
+            size: 24,
             color: const Color(0xFFEA60A7),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Text(
             title,
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

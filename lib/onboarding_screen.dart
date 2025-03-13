@@ -18,14 +18,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description:
           'Join thousands of workers finding jobs in cleaning, babysitting, driving, and more. Apply in just a few steps!',
       buttonText: 'Get Started',
-      navigationRoute: '/home',
+      navigationRoute: '/seekerlogin',
     ),
     OnboardingItem(
       title: 'For Employers',
       description:
           'Hire professional and vetted workers for your home or business. Quick, secure, and hassle-free!',
       buttonText: 'Get Started',
-      navigationRoute: '/home',
+      navigationRoute: '/providerlogin',
     ),
     OnboardingItem(
       title: 'Secure & Verified Platform',

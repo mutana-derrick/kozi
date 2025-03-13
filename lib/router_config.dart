@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kozi/authentication/provider/screens/provider_login_screen.dart';
+import 'package:kozi/authentication/provider/screens/provider_signup_screen.dart';
+import 'package:kozi/authentication/seeker/screens/seeker_login_screen.dart';
 import 'package:kozi/home_screen.dart';
 import 'package:kozi/onboarding_screen.dart';
 import 'package:kozi/splash_screen.dart';
@@ -22,10 +25,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: '/login',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Login Screen - To be implemented')),
-        ),
+        path: '/providerlogin',
+        builder: (context, state) => const ProviderLoginScreen(),
+      ),
+      GoRoute(
+        path: '/providersignup',
+        builder: (context, state) => const ProviderSignUpScreen(),
+      ),
+      GoRoute(
+        path: '/seekerlogin',
+        builder: (context, state) => const SeekerLoginScreen(),
       ),
       GoRoute(
         path: '/admindashboard',

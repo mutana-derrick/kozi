@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          // Using background image instead of gradient
+          // Using background image 
           image: DecorationImage(
             image: AssetImage('assets/images/splash/splash_background.png'),
             fit: BoxFit.cover,
