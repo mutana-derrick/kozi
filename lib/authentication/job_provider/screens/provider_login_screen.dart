@@ -195,7 +195,7 @@ class ProviderLoginScreen extends ConsumerWidget {
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
                         child: ElevatedButton(
-                          onPressed: () => context.push('/home'),
+                          onPressed: () => context.push('/providersetupprofile'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEA60A7),
                             foregroundColor: Colors.white,

@@ -1,0 +1,77 @@
+// How to integrate the workers screen:
+
+// 1. Create a screens directory in your project
+// 2. Add the new WorkersListScreen file there
+// 3. Update the bottom navbar to navigate to the Workers screen
+// 4. Make sure your project structure looks like this:
+
+/*
+- lib/
+  - models/
+    - worker.dart (update to include the extended model or create WorkerListItem separately)
+    - service_category.dart
+  - providers/
+    - providers.dart
+  - screens/
+    - workers_list_screen.dart
+  - widgets/
+    - categories_section.dart
+    - worker_recommendations.dart
+    - custom_bottom_navbar.dart (updated version)
+    - shared_widgets.dart
+  - main_dashboard_screen.dart
+*/
+
+// 5. You can prepare for API integration by modifying the WorkersListScreen:
+
+// Example of how to modify WorkersListScreen for API integration in the future:
+
+/*
+// Add this to providers.dart:
+
+// Provider for workers list (will be replaced by API call later)
+final workersListProvider = FutureProvider<List<WorkerListItem>>((ref) async {
+  // Simulate API call with a delay
+  await Future.delayed(const Duration(seconds: 1));
+  
+  // This will be replaced with actual API call in the future
+  return [
+    WorkerListItem(
+      // ... existing static data
+    ),
+    // ... more workers
+  ];
+});
+
+// Then in your WorkersListScreen:
+// Replace the static data with:
+
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+  final workersAsync = ref.watch(workersListProvider);
+  
+  return Scaffold(
+    // ... existing code
+    
+    // Workers list
+    Expanded(
+      child: workersAsync.when(
+        data: (workers) {
+          // Apply filters to the workers list
+          final filteredWorkers = workers.where((worker) {
+            // Your filtering logic here
+          }).toList();
+          
+          return ListView.builder(
+            // ... existing ListView.builder
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Center(
+          child: Text('Error loading workers: ${error.toString()}'),
+        ),
+      ),
+    ),
+  );
+}
+*/
