@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 // import '../models/worker.dart';
 // import '../models/service_category.dart';
-import '../providers/providers.dart';
-import '../widgets/categories_section.dart';
-import '../widgets/worker_recommendations.dart';
-import '../widgets/custom_bottom_navbar.dart';
+import '../../providers/providers.dart';
+import '../../widgets/categories_section.dart';
+import '../../widgets/worker_recommendations.dart';
+import '../../widgets/custom_bottom_navbar.dart';
 
 class ProviderDashboardScreen extends ConsumerWidget {
   const ProviderDashboardScreen({super.key});

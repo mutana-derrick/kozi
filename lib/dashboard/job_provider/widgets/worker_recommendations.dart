@@ -12,10 +12,10 @@ class WorkerRecommendations extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workers = ref.watch(workersProvider);
-    
+
     return Column(
       children: [
-        SharedWidgets.buildSectionHeader('Worker Recommendations'),
+        SharedWidgets.buildSectionHeader('Worker Recommendations', context),
         const SizedBox(height: 15),
         SizedBox(
           height: 190,

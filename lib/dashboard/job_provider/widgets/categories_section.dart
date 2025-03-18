@@ -6,7 +6,7 @@ import '../providers/providers.dart';
 import 'shared_widgets.dart';
 
 class CategoriesSection extends ConsumerWidget {
-  const CategoriesSection({Key? key}) : super(key: key);
+  const CategoriesSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -14,7 +14,7 @@ class CategoriesSection extends ConsumerWidget {
     
     return Column(
       children: [
-        SharedWidgets.buildSectionHeader('Categories'),
+        SharedWidgets.buildSectionHeader('Categories',context),
         const SizedBox(height: 15),
         SizedBox(
           height: 110,

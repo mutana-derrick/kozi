@@ -1,13 +1,14 @@
+// models/service_category.dart
 import 'package:flutter/material.dart';
 
 class ServiceCategory {
-  final String id;
   final String name;
   final IconData icon;
+  final String id;
 
   ServiceCategory({
-    required this.id,
     required this.name,
     required this.icon,
+    required this.id,
   });
 }

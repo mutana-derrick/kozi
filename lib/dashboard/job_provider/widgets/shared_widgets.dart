@@ -1,9 +1,10 @@
 // widgets/shared_widgets.dart
 import 'package:flutter/material.dart';
+import '../screens/home/all_categories_screen.dart'; 
 
 class SharedWidgets {
   // Helper widget for section headers
-  static Widget buildSectionHeader(String title) {
+  static Widget buildSectionHeader(String title, BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -15,7 +16,16 @@ class SharedWidgets {
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            if (title == 'Categories') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AllCategoriesScreen(),
+                ),
+              );
+            }
+          },
           child: const Row(
             children: [
               Text(

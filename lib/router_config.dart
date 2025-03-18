@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kozi/dashboard/job_provider/screens/profile_screen.dart';
-import 'package:kozi/dashboard/job_provider/screens/provider_dashboard_screen.dart';
+import 'package:kozi/dashboard/job_provider/screens/home/provider_dashboard_screen.dart';
 import 'package:kozi/authentication/job_provider/screens/provider_login_screen.dart';
 import 'package:kozi/authentication/job_provider/screens/provider_setup_profile_screen.dart';
 import 'package:kozi/authentication/job_provider/screens/provider_signup_screen.dart';
