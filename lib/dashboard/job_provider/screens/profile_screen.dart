@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kozi/dashboard/job_provider/screens/home/settings_screen.dart';
+import 'package:kozi/dashboard/job_provider/widgets/settings_icon.dart';
 import '../widgets/custom_bottom_navbar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -59,7 +61,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Icon(Icons.arrow_back_ios_new, size: 18),
+                            child:
+                                const Icon(Icons.arrow_back_ios_new, size: 18),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -72,18 +75,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                         const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(Icons.settings, size: 18, color: Colors.white),
+                        SettingsIconWidget(
+                          iconColor: Colors.white,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Profile setup text
                     const Text(
                       'Set up your profile',
@@ -106,7 +113,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Profile picture
                     Stack(
                       children: [
@@ -117,7 +124,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             color: Colors.teal[300],
                             shape: BoxShape.circle,
                             image: const DecorationImage(
-                              image: AssetImage('assets/profile_placeholder.png'),
+                              image:
+                                  AssetImage('assets/profile_placeholder.png'),
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -146,7 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
           ),
-          
+
           // Form Section
           Expanded(
             child: SingleChildScrollView(
@@ -164,7 +172,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Name Field
                     _buildProfileField(
                       label: 'Name',
@@ -173,7 +181,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       showEdit: false,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Contact Number Field
                     _buildProfileField(
                       label: 'Contact Number',
@@ -182,11 +190,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       showEdit: true,
                       onEditPressed: () {
                         // Show edit dialog
-                        _showEditDialog('Contact Number', _contactNumberController);
+                        _showEditDialog(
+                            'Contact Number', _contactNumberController);
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Date of Birth Field
                     _buildProfileField(
                       label: 'Date of birth',
@@ -198,7 +207,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Location Field
                     _buildProfileField(
                       label: 'Location',
@@ -207,7 +216,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       showEdit: false,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Update Button
                     SizedBox(
                       width: double.infinity,
@@ -216,7 +225,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           if (_formKey.currentState!.validate()) {
                             // Update profile logic
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Profile updated successfully!')),
+                              const SnackBar(
+                                  content:
+                                      Text('Profile updated successfully!')),
                             );
                           }
                         },
@@ -228,7 +239,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        child: const Text('Update', style: TextStyle(fontSize: 16)),
+                        child: const Text('Update',
+                            style: TextStyle(fontSize: 16)),
                       ),
                     ),
                   ],
@@ -276,7 +288,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   readOnly: readOnly,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   keyboardType: keyboardType,
                   validator: (value) {
@@ -305,9 +318,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showEditDialog(String title, TextEditingController controller) {
-    final TextEditingController dialogController = 
+    final TextEditingController dialogController =
         TextEditingController(text: controller.text);
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -349,10 +362,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-    
+
     if (picked != null) {
       setState(() {
-        _dateOfBirthController.text = 
+        _dateOfBirthController.text =
             '${picked.day.toString().padLeft(2, '0')} ${picked.month.toString().padLeft(2, '0')} ${picked.year}';
       });
     }

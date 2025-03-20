@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
+import 'package:kozi/dashboard/job_provider/screens/home/work_hiring_screen.dart';
 
 class WorkerDetailScreen extends StatelessWidget {
   final Worker worker;
@@ -158,7 +159,15 @@ class WorkerDetailScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                HireWorkerFormScreen(worker: worker),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.pink,
                         padding: const EdgeInsets.symmetric(vertical: 12),

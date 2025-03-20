@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:kozi/dashboard/job_provider/screens/home/settings_screen.dart';
+import 'package:kozi/dashboard/job_provider/widgets/settings_icon.dart';
 // import '../models/worker.dart';
 // import '../models/service_category.dart';
 import '../../providers/providers.dart';
@@ -32,8 +34,7 @@ class ProviderDashboardScreen extends ConsumerWidget {
             children: [
               // Custom Header
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -45,10 +46,16 @@ class ProviderDashboardScreen extends ConsumerWidget {
                         color: Colors.black,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      color: Colors.black,
-                      onPressed: () {},
+                    SettingsIconWidget(
+                      iconColor: Colors.black,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

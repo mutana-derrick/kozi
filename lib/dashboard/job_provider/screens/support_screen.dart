@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kozi/dashboard/job_provider/screens/home/settings_screen.dart';
+import 'package:kozi/dashboard/job_provider/widgets/settings_icon.dart';
 import '../widgets/custom_bottom_navbar.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
@@ -52,7 +54,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                 child: Column(
                   children: [
                     // Top bar with back button and title
-                    Row(
+                                        Row(
                       children: [
                         InkWell(
                           onTap: () => Navigator.pop(context),
@@ -75,13 +77,17 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                           ),
                         ),
                         const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(Icons.settings, size: 18, color: Colors.white),
+                        SettingsIconWidget(
+                          iconColor: Colors.white,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
