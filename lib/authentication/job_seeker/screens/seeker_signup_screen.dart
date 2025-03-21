@@ -10,14 +10,14 @@ final passwordVisibilityProvider = StateProvider<bool>((ref) => false);
 // Provider for terms agreement state
 final termsAgreementProvider = StateProvider<bool>((ref) => false);
 
-class ProviderSignUpScreen extends ConsumerStatefulWidget {
-  const ProviderSignUpScreen({super.key});
+class SeekerSignUpScreen extends ConsumerStatefulWidget {
+  const SeekerSignUpScreen({super.key}); 
 
   @override
-  ConsumerState<ProviderSignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SeekerSignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -409,8 +409,8 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              context.push('/providerlogin');
-                            },
+                          context.push('/seekerlogin');
+                        },
                             child: const Text(
                               "Log in",
                               style: TextStyle(

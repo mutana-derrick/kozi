@@ -42,7 +42,7 @@ class ProfileState {
 class ProfileNotifier extends StateNotifier<ProfileState> {
   ProfileNotifier()
       : super(ProfileState(
-          name: "Mutesi Allen",
+          name: "Seeker",
           contactNumber: "+250180000000",
           dateOfBirth: "DD MM YYYY",
           location: "Kacyiru-Kg 6470",
@@ -84,8 +84,8 @@ final profileProvider =
 });
 
 // The UI Screen
-class ProviderSetupProfileScreen extends ConsumerWidget {
-  const ProviderSetupProfileScreen({super.key});
+class SeekerSetupProfileScreen extends ConsumerWidget {
+  const SeekerSetupProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -282,7 +282,7 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
                               elevation: 0,
                             ),
                             onPressed: () =>
-                                context.push('/providerdashboardscreen'),
+                                context.push('/seekerdashboardscreen'),
                             child: const Text(
                               'Submit',
                               style: TextStyle(

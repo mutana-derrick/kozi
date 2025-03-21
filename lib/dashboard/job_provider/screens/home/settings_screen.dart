@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/dashboard/job_provider/widgets/logout_dialog.dart';
+import 'package:kozi/dashboard/job_provider/widgets/policy_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -196,7 +197,15 @@ class SettingsScreen extends ConsumerWidget {
                           iconColor: Colors.white,
                           backgroundColor: const Color(0xFF3498DB),
                           title: 'Privacy Policy',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PrivacyPolicyScreen(),
+                              ),
+                            );
+                          },
                         ),
                         _buildSettingsOption(
                           icon: Icons.info,
