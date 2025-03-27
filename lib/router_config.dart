@@ -10,6 +10,11 @@ import 'package:kozi/authentication/job_provider/screens/provider_signup_screen.
 import 'package:kozi/authentication/job_seeker/screens/seeker_login_screen.dart';
 import 'package:kozi/dashboard/job_provider/screens/support_screen.dart';
 import 'package:kozi/dashboard/job_provider/screens/workers_list_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/job_list_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/payment_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/profile_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/seeker_dashboard_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/status_screen.dart';
 import 'package:kozi/home_screen.dart';
 import 'package:kozi/onboarding_screen.dart';
 import 'package:kozi/splash_screen.dart';
@@ -38,14 +43,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/providersignup',
         builder: (context, state) => const ProviderSignUpScreen(),
       ),
-      
+
       GoRoute(
         path: '/providersetupprofile',
         builder: (context, state) => const ProviderSetupProfileScreen(),
       ),
       GoRoute(
         path: '/providerdashboardscreen',
-        builder: (context, state) => const ProviderDashboardScreen(), 
+        builder: (context, state) => const ProviderDashboardScreen(),
       ),
       GoRoute(
         path: '/workerslistcreen',
@@ -73,10 +78,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/seekersetupprofile',
         builder: (context, state) => const SeekerSetupProfileScreen(),
       ),
-      // GoRoute(
-      //   path: '/seekerdashboardscreen',
-      //   builder: (context, state) => const SeekerDashboardScreen(), 
-      // ),
+      GoRoute(
+        path: '/seekerdashboardscreen',
+        builder: (context, state) => const SeekerDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/jobs',
+        builder: (context, state) => const JobListScreen(),
+      ),
+      GoRoute(
+        path: '/status',
+        builder: (context, state) => const StatusScreen(),
+      ),
+      GoRoute(
+        path: '/payment',
+        builder: (context, state) => const PaymentScreen(),
+      ),
+      GoRoute(
+        path: '/seekerprofile',
+        builder: (context, state) => const SeekerProfileScreen(),
+      ),
     ],
   );
 });

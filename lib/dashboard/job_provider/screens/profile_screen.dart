@@ -53,18 +53,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     // Top bar with back button and title
                     Row(
                       children: [
-                        InkWell(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child:
-                                const Icon(Icons.arrow_back_ios_new, size: 18),
-                          ),
-                        ),
                         const SizedBox(width: 16),
                         const Text(
                           'Profile',
