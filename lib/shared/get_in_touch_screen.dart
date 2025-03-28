@@ -1,9 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class GetInTouchScreen extends ConsumerWidget {
   const GetInTouchScreen({super.key});
+
+  // Helper method to launch URLs
+  Future<void> _launchUrl(BuildContext context, String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $urlString: $e')),
+        );
+      }
+    }
+  }
+
+  // Helper method to make phone calls
+  Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    try {
+      await launchUrl(launchUri);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not make phone call: $e')),
+        );
+      }
+    }
+  }
+
+  // Helper method to send emails
+  Future<void> _sendEmail(BuildContext context, String emailAddress) async {
+    final Uri launchUri = Uri(
+      scheme: 'mailto',
+      path: emailAddress,
+    );
+    try {
+      await launchUrl(launchUri);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not send email: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,107 +100,65 @@ class GetInTouchScreen extends ConsumerWidget {
 
               // Contact options
               ContactOptionTile(
-                icon: FaIcon(FontAwesomeIcons.phone,
+                icon: const FaIcon(FontAwesomeIcons.phone,
                     color: Colors.white, size: 20),
                 backgroundColor: const Color(0xFFFF5252),
                 title: 'Call us',
-                onTap: () {
-                  // Call functionality
-                },
+                onTap: () => _makePhoneCall(context, '0788719678'),
               ),
 
               ContactOptionTile(
-                icon: FaIcon(FontAwesomeIcons.envelope,
+                icon: const FaIcon(FontAwesomeIcons.envelope,
                     color: Colors.white, size: 20),
                 backgroundColor: const Color(0xFF4CAF50),
                 title: 'Email us',
-                onTap: () {
-                  // Email functionality
-                },
+                onTap: () => _sendEmail(context, 'info@kozi.rw'),
               ),
 
               ContactOptionTile(
-                icon: FaIcon(FontAwesomeIcons.globe,
+                icon: const FaIcon(FontAwesomeIcons.globe,
                     color: Colors.white, size: 20),
                 backgroundColor: const Color(0xFF29B6F6),
                 title: 'Visit our website',
-                onTap: () {
-                  // Website navigation
-                },
+                onTap: () => _launchUrl(context, 'https://www.kozi.rw/'),
               ),
-
               ContactOptionTile(
-                icon: FaIcon(FontAwesomeIcons.instagram,
+                icon: const FaIcon(FontAwesomeIcons.instagram,
                     color: Colors.white, size: 20),
                 backgroundColor: const Color(0xFFCA8035),
                 title: 'Follow us on Instagram',
-                onTap: () {
-                  // Instagram functionality
-                },
+                onTap: () =>
+                    _launchUrl(context, 'https://www.instagram.com/kozirw/'),
               ),
 
               ContactOptionTile(
-                icon: FaIcon(FontAwesomeIcons.facebook,
+                icon: const FaIcon(FontAwesomeIcons.facebook,
                     color: Colors.white, size: 20),
                 backgroundColor: const Color(0xFF3F51B5),
                 title: 'Follow us on Facebook',
-                onTap: () {
-                  // Facebook functionality
-                },
+                onTap: () => _launchUrl(context,
+                    'https://www.facebook.com/profile.php?id=61562808873913'),
               ),
 
               ContactOptionTile(
-                icon: FaIcon(FontAwesomeIcons.linkedin,
+                icon: const FaIcon(FontAwesomeIcons.linkedin,
                     color: Colors.white, size: 20),
                 backgroundColor: const Color(0xFF0277BD),
                 title: 'Follow us on LinkedIn',
-                onTap: () {
-                  // LinkedIn functionality
-                },
+                onTap: () => _launchUrl(
+                    context, 'https://www.linkedin.com/company/kozi-rwanda/'),
               ),
 
-              const SizedBox(height: 40),
-
-              // Linked accounts section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Linked accounts',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    // decoration: BoxDecoration(
-                    //   color: Colors.white.withOpacity(0.7),
-                    //   borderRadius: BorderRadius.circular(20),
-                    // ),
-                    child: const Row(
-                      children: [
-                        Text(
-                          'Facebook, Google',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 14,
-                          color: Colors.black54,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              ContactOptionTile(
+                icon: const FaIcon(FontAwesomeIcons.twitter,
+                    color: Colors.white, size: 20),
+                backgroundColor: const Color(0xFF0277BD),
+                title: 'Follow us on Twitter',
+                onTap: () => _launchUrl(
+                    context, 'https://www.linkedin.com/company/kozi-rwanda/'),
               ),
 
+              const SizedBox(height: 15),
               const SizedBox(height: 30),
               const Divider(height: 1, color: Colors.black12),
             ],
@@ -162,6 +169,7 @@ class GetInTouchScreen extends ConsumerWidget {
   }
 }
 
+// The ContactOptionTile remains the same as in the original code
 class ContactOptionTile extends StatelessWidget {
   final Widget icon;
   final Color backgroundColor;
