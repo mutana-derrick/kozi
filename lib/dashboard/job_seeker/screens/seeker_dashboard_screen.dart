@@ -6,6 +6,7 @@ import 'package:kozi/dashboard/job_seeker/models/user_profile.dart';
 import 'package:kozi/dashboard/job_seeker/providers/user_provider.dart';
 import 'package:kozi/dashboard/job_seeker/wigets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/wigets/custom_header.dart';
+import 'package:kozi/shared/advertisement_carousel.dart';
 
 class SeekerDashboardScreen extends ConsumerWidget {
   const SeekerDashboardScreen({super.key});
@@ -29,12 +30,10 @@ class SeekerDashboardScreen extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              const CustomHeader(
-                  title:
-                      'Home'), //change space between this header & content here using symetrics========================
+              const CustomHeader(title: 'Home'),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -42,9 +41,45 @@ class SeekerDashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       _buildProfileCard(userProfile),
                       const SizedBox(height: 16),
-                      _buildSectionTitle('Open Jobs Opportunities!'),
+                      // New row with section title and More button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildSectionTitle('Open Jobs Opportunities!'),
+                          TextButton(
+                            onPressed: () {
+                              // Update the selected nav index to Jobs (index 1)
+                              ref
+                                  .read(selectedNavIndexProvider.notifier)
+                                  .state = 1;
+
+                              // Navigate to jobs screen
+                              context.go('/jobs');
+                            },
+                            child: const Row(
+                              children: [
+                                Text(
+                                  'See all',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12,
+                                  color: Colors.grey,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 8),
                       _buildJobList(context),
+                      const SizedBox(height: 16),
+                      // Advertisement 
+                      const AdvertisementCarousel(),
                       const SizedBox(height: 16),
                       _buildPaymentReminder(context),
                     ],
@@ -200,6 +235,14 @@ class SeekerDashboardScreen extends ConsumerWidget {
         'rating': 2.8,
         'views': 2821,
       },
+      {
+        'title': 'Country Manager',
+        'company': 'Yellow',
+        'description': 'Yellow\'s purpose is to make life...',
+        'companyLogo': 'Y',
+        'rating': 2.8,
+        'views': 2821,
+      },
     ];
 
     return Column(
@@ -268,7 +311,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
                 Text(
                   job['description'],
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     color: Colors.grey,
                   ),
                   maxLines: 1,
@@ -373,4 +416,5 @@ class SeekerDashboardScreen extends ConsumerWidget {
       ),
     );
   }
+
 }

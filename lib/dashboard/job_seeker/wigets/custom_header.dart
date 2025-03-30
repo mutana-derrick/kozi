@@ -11,7 +11,7 @@ class CustomHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 10),
       child: Row(
         children: [
           const SizedBox(width: 16),
@@ -24,7 +24,7 @@ class CustomHeader extends StatelessWidget {
           ),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.all(10),//change alignment here using symetrics========================
+            padding: const EdgeInsets.only(right: 18),
             // decoration: const BoxDecoration(
             //   color: Colors.white,
             //   shape: BoxShape.circle,

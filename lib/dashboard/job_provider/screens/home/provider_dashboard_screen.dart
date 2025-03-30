@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/settings_screen.dart';
 import 'package:kozi/dashboard/job_provider/widgets/settings_icon.dart';
+import 'package:kozi/shared/advertisement_carousel.dart';
 // import '../models/worker.dart';
 // import '../models/service_category.dart';
 import '../../providers/providers.dart';
@@ -34,7 +35,8 @@ class ProviderDashboardScreen extends ConsumerWidget {
             children: [
               // Custom Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -133,15 +135,8 @@ class ProviderDashboardScreen extends ConsumerWidget {
 
                         const SizedBox(height: 25),
 
-                        // Advertisement placeholder
-                        Container(
-                          width: double.infinity,
-                          height: 60,
-                          margin: const EdgeInsets.symmetric(vertical: 10),
-                          child: const Center(
-                            child: Text("Advertisement Placeholder"),
-                          ),
-                        ),
+                        // Advertisement
+                        const AdvertisementCarousel(),
 
                         const SizedBox(height: 15),
 

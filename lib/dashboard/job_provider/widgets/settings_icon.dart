@@ -9,14 +9,14 @@ class SettingsIconWidget extends StatelessWidget {
   final double opacity;
 
   const SettingsIconWidget({
-    Key? key,
+    super.key,
     this.iconColor,
     this.backgroundColor,
     required this.onPressed,
     this.size = 36.0,
-    this.iconSize = 18.0,
+    this.iconSize = 24.0,
     this.opacity = 1.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class SettingsIconWidget extends StatelessWidget {
           minHeight: size,
         ),
         icon: Icon(
-          Icons.settings_outlined,
+          Icons.settings,
           size: iconSize,
           color: iconColor ?? Colors.black,
         ),
