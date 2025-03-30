@@ -10,7 +10,9 @@ import 'package:kozi/authentication/job_provider/screens/provider_signup_screen.
 import 'package:kozi/authentication/job_seeker/screens/seeker_login_screen.dart';
 import 'package:kozi/dashboard/job_provider/screens/support_screen.dart';
 import 'package:kozi/dashboard/job_provider/screens/workers_list_screen.dart';
-import 'package:kozi/dashboard/job_seeker/screens/job_list_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/job_list/job_application_form_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/job_list/job_application_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/job_list/job_list_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/payment_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/profile_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/seeker_dashboard_screen.dart';
@@ -97,6 +99,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/seekerprofile',
         builder: (context, state) => const SeekerProfileScreen(),
+      ),
+      GoRoute(
+        path: '/job/:id',
+        builder: (context, state) {
+          final jobId = state.pathParameters['id']!;
+          return JobApplicationScreen(jobId: jobId);
+        },
+      ),
+      GoRoute(
+        path: '/apply/:id/form',
+        builder: (context, state) {
+          final jobId = state.pathParameters['id']!;
+          return JobApplicationFormScreen(jobId: jobId);
+        },
       ),
     ],
   );

@@ -19,6 +19,7 @@ dependencies:
   url_launcher: ^6.3.0
   carousel_slider: ^5.0.0
 
+
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

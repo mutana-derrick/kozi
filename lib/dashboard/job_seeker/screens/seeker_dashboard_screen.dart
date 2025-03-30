@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/models/user_profile.dart';
+import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/providers/user_provider.dart';
 import 'package:kozi/dashboard/job_seeker/wigets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/wigets/custom_header.dart';
@@ -76,9 +78,9 @@ class SeekerDashboardScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      _buildJobList(context),
+                      _buildJobList(context, ref),
                       const SizedBox(height: 16),
-                      // Advertisement 
+                      // Advertisement
                       const AdvertisementCarousel(),
                       const SizedBox(height: 16),
                       _buildPaymentReminder(context),
@@ -216,41 +218,17 @@ class SeekerDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildJobList(BuildContext context) {
-    // In a real app, this would be fetched from a provider
-    final jobs = [
-      {
-        'title': 'Country Manager',
-        'company': 'Yellow',
-        'description': 'Yellow\'s purpose is to make life...',
-        'companyLogo': 'Y',
-        'rating': 2.8,
-        'views': 2821,
-      },
-      {
-        'title': 'Marketing Manager',
-        'company': 'Sanson Group',
-        'description': 'Sanson Group is a IT Consultan......',
-        'companyLogo': 'S',
-        'rating': 2.8,
-        'views': 2821,
-      },
-      {
-        'title': 'Country Manager',
-        'company': 'Yellow',
-        'description': 'Yellow\'s purpose is to make life...',
-        'companyLogo': 'Y',
-        'rating': 2.8,
-        'views': 2821,
-      },
-    ];
+  Widget _buildJobList(BuildContext context, WidgetRef ref) {
+    // Fetch jobs from the provider
+    final jobs = ref.watch(jobsProvider);
 
     return Column(
       children: jobs.map((job) => _buildJobCard(context, job)).toList(),
     );
   }
 
-  Widget _buildJobCard(BuildContext context, Map<String, dynamic> job) {
+// Add this to your home_screen.dart or wherever you're using the job card
+  Widget _buildJobCard(BuildContext context, Job job) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -271,12 +249,12 @@ class SeekerDashboardScreen extends ConsumerWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.amber,
+              color: job.companyLogoColor,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
               child: Text(
-                job['companyLogo'],
+                job.companyLogo,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -293,7 +271,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      job['title'],
+                      job.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -309,9 +287,9 @@ class SeekerDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  job['description'],
+                  job.description,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: Colors.grey,
                   ),
                   maxLines: 1,
@@ -321,7 +299,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      '${job['rating']}',
+                      '${job.rating}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -329,7 +307,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '(${job['views']} views)',
+                      '(${job.views} views)',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -337,14 +315,16 @@ class SeekerDashboardScreen extends ConsumerWidget {
                     ),
                     const Spacer(),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Navigate to job details screen using GoRouter
+                        context.push('/job/${job.id}');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEA60A7),
                         foregroundColor: Colors.white,
                         minimumSize: const Size(120, 30),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                              8), // Customize border radius
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
@@ -416,5 +396,4 @@ class SeekerDashboardScreen extends ConsumerWidget {
       ),
     );
   }
-
 }

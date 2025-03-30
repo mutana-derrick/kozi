@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/wigets/custom_bottom_navbar.dart';
@@ -149,21 +150,20 @@ class JobListScreen extends ConsumerWidget {
                     ),
                     const Spacer(),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Navigate to application form
+                        context.push('/apply/${job.id}/form');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEA60A7),
                         foregroundColor: Colors.white,
                         minimumSize: const Size(120, 30),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                              8), // Customize border radius
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
-                      child: const Text(
-                        'Apply for this job',
-                        style: TextStyle(fontSize: 12),
-                      ),
+                      child: const Text('Apply for this job'),
                     ),
                   ],
                 ),
