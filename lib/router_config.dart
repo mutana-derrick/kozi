@@ -16,6 +16,7 @@ import 'package:kozi/dashboard/job_seeker/screens/job_list/job_list_screen.dart'
 import 'package:kozi/dashboard/job_seeker/screens/payment_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/profile_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/seeker_dashboard_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/seeker_settings_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/status_screen.dart';
 import 'package:kozi/home_screen.dart';
 import 'package:kozi/onboarding_screen.dart';
@@ -99,6 +100,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/seekerprofile',
         builder: (context, state) => const SeekerProfileScreen(),
+      ),
+      GoRoute(
+        path: '/seekersettings',
+        builder: (context, state) => const SeekerSettingsScreen(),
       ),
       GoRoute(
         path: '/job/:id',

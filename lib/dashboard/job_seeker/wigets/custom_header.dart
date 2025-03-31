@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class CustomHeader extends StatelessWidget {
   final String title;
@@ -23,15 +24,16 @@ class CustomHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.only(right: 18),
-            // decoration: const BoxDecoration(
-            //   color: Colors.white,
-            //   shape: BoxShape.circle,
-            // ),
-            child: const Icon(
-              Icons.settings,
-              size: 24,
+          GestureDetector(
+            onTap: () {
+              context.push('/seekersettings');
+            },
+            child: Container(
+              padding: const EdgeInsets.only(right: 18),
+              child: const Icon(
+                Icons.settings,
+                size: 24,
+              ),
             ),
           ),
         ],

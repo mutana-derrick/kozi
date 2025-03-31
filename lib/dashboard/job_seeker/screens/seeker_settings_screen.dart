@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/shared/logout_dialog.dart';
 import 'package:kozi/shared/policy_screen.dart';
 
-class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key});
+class SeekerSettingsScreen extends ConsumerWidget {
+  const SeekerSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

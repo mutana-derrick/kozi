@@ -5,10 +5,10 @@ class CustomLogoutDialog extends StatelessWidget {
   final VoidCallback? onCancel;
 
   const CustomLogoutDialog({
-    Key? key,
+    super.key,
     required this.onConfirm,
     this.onCancel,
-  }) : super(key: key);
+  });
 
   /// Shows the logout confirmation dialog
   static Future<bool?> show(
