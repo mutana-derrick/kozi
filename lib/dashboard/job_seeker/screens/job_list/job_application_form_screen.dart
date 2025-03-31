@@ -7,6 +7,23 @@ import 'package:go_router/go_router.dart';
 // Step provider to track current application step
 final applicationStepProvider = StateProvider<int>((ref) => 1);
 
+// Providers to track work history and education entries
+final workHistoryEntriesProvider =
+    StateProvider<List<WorkHistoryEntry>>((ref) => [WorkHistoryEntry()]);
+final educationEntriesProvider =
+    StateProvider<List<EducationEntry>>((ref) => [EducationEntry()]);
+
+// Models for work history and education entries
+class WorkHistoryEntry {
+  String companyName = '';
+  String titleAndExperience = '';
+}
+
+class EducationEntry {
+  String schoolNameAndLevel = '';
+  String field = '';
+}
+
 class JobApplicationFormScreen extends ConsumerWidget {
   final String jobId;
 
@@ -263,6 +280,9 @@ class JobApplicationFormScreen extends ConsumerWidget {
   }
 
   Widget _buildExperienceForm(BuildContext context, WidgetRef ref) {
+    final workHistoryEntries = ref.watch(workHistoryEntriesProvider);
+    final educationEntries = ref.watch(educationEntriesProvider);
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -273,119 +293,263 @@ class JobApplicationFormScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Experience',
-              style: TextStyle(
-                color: Colors.pink[400],
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+            // Work History Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Experience',
+                  style: TextStyle(
+                    color: Colors.pink[400],
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Work History',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Work History',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add_circle, color: Colors.pink[400]),
+                  onPressed: () {
+                    ref.read(workHistoryEntriesProvider.notifier).state = [
+                      ...workHistoryEntries,
+                      WorkHistoryEntry()
+                    ];
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            // Company name field
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Company Name',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Title field
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Title and Experience',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
+
+            // Dynamic Work History Fields
+            ...workHistoryEntries.asMap().entries.map((entry) {
+              final index = entry.key;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (index > 0) const Divider(height: 32),
+                  if (index > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Work History ${index + 1}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (index > 0)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle,
+                                  color: Colors.red),
+                              onPressed: () {
+                                final newEntries = List<WorkHistoryEntry>.from(
+                                    workHistoryEntries);
+                                newEntries.removeAt(index);
+                                ref
+                                    .read(workHistoryEntriesProvider.notifier)
+                                    .state = newEntries;
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  // Company name field
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Company Name',
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      final newEntries =
+                          List<WorkHistoryEntry>.from(workHistoryEntries);
+                      newEntries[index].companyName = value;
+                      ref.read(workHistoryEntriesProvider.notifier).state =
+                          newEntries;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Title field
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Title and Experience',
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      final newEntries =
+                          List<WorkHistoryEntry>.from(workHistoryEntries);
+                      newEntries[index].titleAndExperience = value;
+                      ref.read(workHistoryEntriesProvider.notifier).state =
+                          newEntries;
+                    },
+                  ),
+                ],
+              );
+            }).toList(),
+
             const SizedBox(height: 24),
-            Text(
-              'Education',
-              style: TextStyle(
-                color: Colors.pink[400],
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+
+            // Education Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Education',
+                  style: TextStyle(
+                    color: Colors.pink[400],
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add_circle, color: Colors.pink[400]),
+                  onPressed: () {
+                    ref.read(educationEntriesProvider.notifier).state = [
+                      ...educationEntries,
+                      EducationEntry()
+                    ];
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            // School field
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'School name and Level',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Field of study
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Field',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
+
+            // Dynamic Education Fields
+            ...educationEntries.asMap().entries.map((entry) {
+              final index = entry.key;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (index > 0) const Divider(height: 32),
+                  if (index > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Education ${index + 1}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (index > 0)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle,
+                                  color: Colors.red),
+                              onPressed: () {
+                                final newEntries =
+                                    List<EducationEntry>.from(educationEntries);
+                                newEntries.removeAt(index);
+                                ref
+                                    .read(educationEntriesProvider.notifier)
+                                    .state = newEntries;
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  // School field
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'School name and Level',
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      final newEntries =
+                          List<EducationEntry>.from(educationEntries);
+                      newEntries[index].schoolNameAndLevel = value;
+                      ref.read(educationEntriesProvider.notifier).state =
+                          newEntries;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Field of study
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Field',
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      final newEntries =
+                          List<EducationEntry>.from(educationEntries);
+                      newEntries[index].field = value;
+                      ref.read(educationEntriesProvider.notifier).state =
+                          newEntries;
+                    },
+                  ),
+                ],
+              );
+            }).toList(),
+
             const SizedBox(height: 16),
             // CV upload button
             InkWell(

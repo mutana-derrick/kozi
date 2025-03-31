@@ -12,9 +12,11 @@ class Job {
   final Color companyLogoColor;
   final double rating;
   final int views;
-  
+  final String? category;
+
   Job({
-    String? id, // Optional in constructor, but will be generated if not provided
+    String?
+        id, // Optional in constructor, but will be generated if not provided
     required this.title,
     required this.company,
     required this.description,
@@ -24,8 +26,10 @@ class Job {
     required this.companyLogoColor,
     required this.rating,
     required this.views,
-  }) : id = id ?? _generateId(company, title); // Auto-generate ID if not provided
-  
+    this.category,
+  }) : id = id ??
+            _generateId(company, title); // Auto-generate ID if not provided
+
   // Helper method to generate an ID
   static String _generateId(String company, String title) {
     return '${company.toLowerCase().replaceAll(' ', '-')}-${title.toLowerCase().replaceAll(' ', '-')}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
