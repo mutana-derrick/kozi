@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/profile_provider.dart';
+import '../../providers/profile_provider.dart';
 
 class AddressFormSection extends ConsumerWidget {
   const AddressFormSection({super.key});

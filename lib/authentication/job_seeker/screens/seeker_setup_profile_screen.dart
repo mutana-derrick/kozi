@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kozi/authentication/job_seeker/profile_form_sections/address_form_section.dart';
-import 'package:kozi/authentication/job_seeker/profile_form_sections/personal_info_form_section.dart';
-import 'package:kozi/authentication/job_seeker/profile_form_sections/technical_form_section.dart';
+import 'package:kozi/authentication/job_seeker/widgets/profile_form_sections/address_form_section.dart';
+import 'package:kozi/authentication/job_seeker/widgets/profile_form_sections/personal_info_form_section.dart';
+import 'package:kozi/authentication/job_seeker/widgets/profile_form_sections/technical_form_section.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/authentication/job_seeker/widgets/profile_image_section.dart';
 import 'package:kozi/authentication/job_seeker/widgets/progress_bar.dart';
