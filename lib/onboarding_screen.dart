@@ -16,7 +16,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingItem(
       title: 'Looking for a Job?',
       description:
-          'Join thousands of workers finding jobs in cleaning, babysitting, driving, and more. Apply in just a few steps!',
+          'Join thousands of workers finding jobs in different sectors. Apply in just a few steps!',
       buttonText: 'Get Started',
       navigationRoute: '/seekerlogin',
     ),

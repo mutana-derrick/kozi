@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../widgets/forgot_password_modal.dart';
+import '../widgets/forgot_password/email_verification_modal.dart';
 
 // Provider for password visibility state
 final passwordVisibilityProvider = StateProvider<bool>((ref) => false);

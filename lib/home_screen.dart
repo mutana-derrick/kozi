@@ -50,23 +50,26 @@ class HomeScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 40.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      ElevatedButton(
-                        onPressed: () => _showUserTypeBottomSheet(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEA60A7),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.75,
+                        child: ElevatedButton(
+                          onPressed: () => _showUserTypeBottomSheet(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA60A7),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          "Continue as",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                          child: const Text(
+                            "Continue as",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -121,14 +124,14 @@ class HomeScreen extends ConsumerWidget {
             _buildBottomSheetButton(
               context,
               "Job Seeker",
-              FontAwesomeIcons.user,
+              FontAwesomeIcons.solidUser,
               "/seekerlogin",
             ),
             const SizedBox(height: 16),
             _buildBottomSheetButton(
               context,
               "Job Provider",
-              FontAwesomeIcons.building,
+              FontAwesomeIcons.userTie,
               "/providerlogin",
             ),
             const SizedBox(height: 24),
