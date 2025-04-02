@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/providers.dart';
 
+
 class CustomBottomNavBar extends ConsumerWidget {
   const CustomBottomNavBar({super.key});
 
@@ -17,23 +18,23 @@ class CustomBottomNavBar extends ConsumerWidget {
       onTap: (index) {
         ref.read(selectedNavIndexProvider.notifier).state = index;
 
-        // Navigate using GoRouter based on selected index
+        // Navigate using pushRouter based on selected index
         switch (index) {
           case 0:
             // Home
-            context.go('/providerdashboardscreen');
+            context.push('/providerdashboardscreen');
             break;
           case 1:
             // Workers
-            context.go('/workerslistcreen');
+            context.push('/workerslistcreen');
             break;
           case 2:
             // Support
-            context.go('/support');
+            context.push('/support');
             break;
           case 3:
             // Profile
-            context.go('/profile');
+            context.push('/profile');
             break;
         }
       },

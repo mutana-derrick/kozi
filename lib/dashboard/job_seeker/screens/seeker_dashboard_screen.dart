@@ -6,8 +6,8 @@ import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/models/user_profile.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/providers/user_provider.dart';
-import 'package:kozi/dashboard/job_seeker/wigets/custom_bottom_navbar.dart';
-import 'package:kozi/dashboard/job_seeker/wigets/custom_header.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
 import 'package:kozi/shared/advertisement_carousel.dart';
 
 class SeekerDashboardScreen extends ConsumerWidget {
@@ -41,7 +41,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
                     children: [
                       _buildGreeting(userProfile),
                       const SizedBox(height: 16),
-                      _buildProfileCard(userProfile),
+                      _buildProfileCard(context, ref, userProfile),
                       const SizedBox(height: 16),
                       // New row with section title and More button
                       Row(
@@ -52,7 +52,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
                             onPressed: () {
                               // Update the selected nav index to Jobs (index 1)
                               ref
-                                  .read(selectedNavIndexProvider.notifier)
+                                  .read(selectedNavIndex.notifier)
                                   .state = 1;
 
                               // Navigate to jobs screen
@@ -106,7 +106,8 @@ class SeekerDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileCard(UserProfile profile) {
+  Widget _buildProfileCard(
+      BuildContext context, WidgetRef ref, UserProfile profile) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -186,7 +187,12 @@ class SeekerDashboardScreen extends ConsumerWidget {
                       ),
                     const Spacer(),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Navigate to profile page
+                        context.go('/seekerprofile');
+
+                        ref.read(selectedNavIndex.notifier).state = 4;
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEA60A7),
                         foregroundColor: Colors.white,

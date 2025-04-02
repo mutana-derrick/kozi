@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kozi/dashboard/job_seeker/wigets/custom_bottom_navbar.dart';
-import 'package:kozi/dashboard/job_seeker/wigets/custom_header.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
 
 class PaymentScreen extends ConsumerWidget {
   const PaymentScreen({super.key});

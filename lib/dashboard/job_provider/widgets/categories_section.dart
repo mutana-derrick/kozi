@@ -5,16 +5,19 @@ import '../models/service_category.dart';
 import '../providers/providers.dart';
 import 'shared_widgets.dart';
 
+// widgets/categories_section.dart
 class CategoriesSection extends ConsumerWidget {
   const CategoriesSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider);
-    
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 600; // Tablet breakpoint
+
     return Column(
       children: [
-        SharedWidgets.buildSectionHeader('Categories',context),
+        SharedWidgets.buildSectionHeader('Categories', context),
         const SizedBox(height: 15),
         SizedBox(
           height: 110,
@@ -23,7 +26,9 @@ class CategoriesSection extends ConsumerWidget {
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final category = categories[index];
-              return _buildCategoryCard(category);
+              final cardWidth =
+                  isLargeScreen ? 120.0 : 80.0; // Responsive width
+              return _buildCategoryCard(category, cardWidth: cardWidth);
             },
           ),
         ),
@@ -31,15 +36,15 @@ class CategoriesSection extends ConsumerWidget {
     );
   }
 
-  // Helper widget for category cards
-  Widget _buildCategoryCard(ServiceCategory category) {
+  Widget _buildCategoryCard(ServiceCategory category,
+      {required double cardWidth}) {
     return Container(
-      width: 80,
+      width: cardWidth,
       margin: const EdgeInsets.only(right: 15),
       child: Column(
         children: [
           Container(
-            width: 60,
+            width: 60, // Fixed icon size
             height: 60,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -64,11 +69,7 @@ class CategoriesSection extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             category.name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
       ),

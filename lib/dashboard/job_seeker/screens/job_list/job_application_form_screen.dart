@@ -492,7 +492,7 @@ class JobApplicationFormScreen extends ConsumerWidget {
                   // School field
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'School name and Level',
+                      hintText: 'Qualifications',
                       hintStyle: TextStyle(color: Colors.grey[600]),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),

@@ -19,6 +19,7 @@ dependencies:
   url_launcher: ^6.3.0
   carousel_slider: ^5.0.0
   image_picker: ^1.1.2
+  share_plus: ^10.1.4
 
 
 flutter_launcher_icons:

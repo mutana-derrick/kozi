@@ -3,20 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 
-final selectedNavIndexProvider = StateProvider<int>((ref) => 0);
+final selectedNavIndex = StateProvider<int>((ref) => 0);
 
 class CustomBottomNavBar extends ConsumerWidget {
   const CustomBottomNavBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = ref.watch(selectedNavIndexProvider);
+    final selectedIndex = ref.watch(selectedNavIndex);
 
-    return BottomNavigationBar(
+    return BottomNavigationBar( 
       type: BottomNavigationBarType.fixed,
       currentIndex: selectedIndex,
       onTap: (index) {
-        ref.read(selectedNavIndexProvider.notifier).state = index;
+        ref.read(selectedNavIndex.notifier).state = index;
 
         // Navigate using GoRouter based on selected index
         switch (index) {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class JobApplicationScreen extends ConsumerWidget {
   final String jobId;
@@ -20,6 +21,26 @@ class JobApplicationScreen extends ConsumerWidget {
         error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
+  }
+
+  // Share job function to be reused
+  void _shareJob(Job job) {
+    final String jobTitle = job.title;
+    final String companyName = job.company;
+    
+    // Create a share text with job details
+    final String shareText = '''
+Check out this job opportunity!
+
+$jobTitle at $companyName
+
+${job.description}
+
+Apply now on Kozi!
+''';
+
+    // Launch the share dialog
+    Share.share(shareText, subject: 'Job Opportunity: $jobTitle');
   }
 
   Widget _buildJobDetails(BuildContext context, Job job) {
@@ -62,9 +83,7 @@ class JobApplicationScreen extends ConsumerWidget {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.share),
-                      onPressed: () {
-                        // Share functionality
-                      },
+                      onPressed: () => _shareJob(job),
                     ),
                   ],
                 ),
@@ -223,9 +242,7 @@ class JobApplicationScreen extends ConsumerWidget {
                     Expanded(
                       flex: 1,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Share job logic
-                        },
+                        onPressed: () => _shareJob(job),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.pink,

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kozi/dashboard/job_provider/providers/providers.dart';
+import 'package:kozi/dashboard/job_provider/widgets/reset_passsword_modal.dart';
 import 'package:kozi/shared/get_in_touch_screen.dart';
 import 'package:kozi/shared/logout_dialog.dart';
 import 'package:kozi/shared/policy_screen.dart';
@@ -147,7 +150,12 @@ class SettingsScreen extends ConsumerWidget {
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   onPressed: () {
-                                    // Navigate to edit profile
+                                    // Navigate to profile page
+                                    context.push('/profile');
+
+                                    ref
+                                        .read(selectedNavIndexProvider.notifier)
+                                        .state = 3;
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFEE5A9E),
@@ -186,7 +194,19 @@ class SettingsScreen extends ConsumerWidget {
                             iconColor: Colors.white,
                             backgroundColor: const Color(0xFFE74C3C),
                             title: 'Change Password',
-                            onTap: () {},
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.white,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20)),
+                                ),
+                                builder: (context) =>
+                                    const ResetPasswordModal(),
+                              );
+                            },
                           ),
                           _buildSettingsOption(
                             icon: Icons.notifications,

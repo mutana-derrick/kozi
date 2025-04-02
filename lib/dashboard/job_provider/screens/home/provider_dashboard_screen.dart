@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/settings_screen.dart';
 import 'package:kozi/dashboard/job_provider/widgets/settings_icon.dart';
 import 'package:kozi/shared/advertisement_carousel.dart';
@@ -181,7 +182,13 @@ class ProviderDashboardScreen extends ConsumerWidget {
                                 ),
                               ),
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  ref
+                                      .read(selectedNavIndexProvider.notifier)
+                                      .state = 2;
+
+                                  context.push('/support');
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.pink[300],
                                   shape: RoundedRectangleBorder(
@@ -263,3 +270,5 @@ class ProviderDashboardScreen extends ConsumerWidget {
     );
   }
 }
+
+
