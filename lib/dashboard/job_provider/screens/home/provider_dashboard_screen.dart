@@ -199,7 +199,9 @@ class ProviderDashboardScreen extends ConsumerWidget {
                                     vertical: 12,
                                   ),
                                 ),
-                                child: const Text('Request An Estimate'),
+                                child: const Text(
+                                  'Request An Estimate'
+                                  ),
                               ),
                             ],
                           ),

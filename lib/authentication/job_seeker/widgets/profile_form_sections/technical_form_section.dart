@@ -133,7 +133,7 @@ class TechnicalFormSection extends ConsumerWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10), 
                   ),
                   side: const BorderSide(color: Color(0xFFEA60A7)),
                 ),

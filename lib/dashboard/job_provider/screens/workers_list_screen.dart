@@ -16,6 +16,9 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
   String _selectedPartTime = 'All';
   String _selectedExperience = 'All';
 
+  // Track which filter is expanded
+  String? _expandedFilter;
+
   // Temporary static data
   final List<WorkerListItem> _workers = [
     WorkerListItem(
@@ -119,8 +122,7 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
             children: [
               // App Bar
               const Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -174,7 +176,7 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                 ),
               ),
 
-              // Filter options - Fixed overflow with SingleChildScrollView
+              // Filter chips in horizontal row
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: SingleChildScrollView(
@@ -184,59 +186,80 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                     children: [
                       _buildFilterChip(
                         label: 'All',
-                        isSelected: _selectedCategory == 'All',
-                        onTap: () => setState(() => _selectedCategory = 'All'),
+                        isSelected: _selectedCategory == 'All' &&
+                            _selectedPartTime == 'All' &&
+                            _selectedExperience == 'All',
+                        onTap: () => setState(() {
+                          _selectedCategory = 'All';
+                          _selectedPartTime = 'All';
+                          _selectedExperience = 'All';
+                          _expandedFilter = null;
+                        }),
                       ),
                       const SizedBox(width: 8),
-                      _buildDropdownFilter(
+                      _buildFilterButton(
                         label: 'Categories',
-                        value: _selectedCategory == 'All'
-                            ? null
-                            : _selectedCategory,
-                        items: [
-                          'Moving',
-                          'Cleaning',
-                          'Chef',
-                          'Logistics',
-                          'Home Service',
-                          'Cooking'
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedCategory = value);
-                          }
+                        isActive: _selectedCategory != 'All',
+                        isExpanded: _expandedFilter == 'category',
+                        onTap: () {
+                          setState(() {
+                            _expandedFilter = _expandedFilter == 'category'
+                                ? null
+                                : 'category';
+                          });
                         },
                       ),
                       const SizedBox(width: 8),
-                      _buildDropdownFilter(
+                      _buildFilterButton(
                         label: 'Part-time',
-                        value: _selectedPartTime == 'All'
-                            ? null
-                            : _selectedPartTime,
-                        items: ['Part-time', 'Full-time'],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedPartTime = value);
-                          }
+                        isActive: _selectedPartTime != 'All',
+                        isExpanded: _expandedFilter == 'partTime',
+                        onTap: () {
+                          setState(() {
+                            _expandedFilter = _expandedFilter == 'partTime'
+                                ? null
+                                : 'partTime';
+                          });
                         },
                       ),
                       const SizedBox(width: 8),
-                      _buildDropdownFilter(
-                        label: 'Experience level',
-                        value: _selectedExperience == 'All'
-                            ? null
-                            : _selectedExperience,
-                        items: ['Beginner', 'Intermediate', 'Expert'],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedExperience = value);
-                          }
+                      _buildFilterButton(
+                        label: 'Experience',
+                        isActive: _selectedExperience != 'All',
+                        isExpanded: _expandedFilter == 'experience',
+                        onTap: () {
+                          setState(() {
+                            _expandedFilter = _expandedFilter == 'experience'
+                                ? null
+                                : 'experience';
+                          });
                         },
                       ),
                     ],
                   ),
                 ),
               ),
+
+              // Dropdown filter content
+              if (_expandedFilter != null)
+                Container(
+                  margin:
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildExpandedFilterContent(),
+                ),
 
               // Workers list
               Expanded(
@@ -284,35 +307,138 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
     );
   }
 
-  Widget _buildDropdownFilter({
+  Widget _buildFilterButton({
     required String label,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
+    required bool isActive,
+    required bool isExpanded,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-          hint: Text(
-            label,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.pink[100] : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? Colors.pink[300]! : Colors.grey[300]!,
           ),
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-          onChanged: onChanged,
-          items: items.map<DropdownMenuItem<String>>((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.pink[700] : Colors.grey[600],
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+              color: isActive ? Colors.pink[700] : Colors.grey[600],
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandedFilterContent() {
+    if (_expandedFilter == 'category') {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          'Moving',
+          'Cleaning',
+          'Chef',
+          'Logistics',
+          'Home Service',
+          'Cooking',
+          'Moving',
+          'Cleaning',
+          'Chef'
+        ].map((category) {
+          return _buildFilterOptionChip(
+            label: category,
+            isSelected: _selectedCategory == category,
+            onTap: () {
+              setState(() {
+                _selectedCategory =
+                    _selectedCategory == category ? 'All' : category;
+              });
+            },
+          );
+        }).toList(),
+      );
+    } else if (_expandedFilter == 'partTime') {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          'Part-time',
+          'Full-time',
+        ].map((option) {
+          return _buildFilterOptionChip(
+            label: option,
+            isSelected: _selectedPartTime == option,
+            onTap: () {
+              setState(() {
+                _selectedPartTime =
+                    _selectedPartTime == option ? 'All' : option;
+              });
+            },
+          );
+        }).toList(),
+      );
+    } else if (_expandedFilter == 'experience') {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          'Beginner',
+          'Intermediate',
+          'Expert',
+        ].map((level) {
+          return _buildFilterOptionChip(
+            label: level,
+            isSelected: _selectedExperience == level,
+            onTap: () {
+              setState(() {
+                _selectedExperience =
+                    _selectedExperience == level ? 'All' : level;
+              });
+            },
+          );
+        }).toList(),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildFilterOptionChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.pink[300] : Colors.pink[50],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.pink[700],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
         ),
       ),
     );

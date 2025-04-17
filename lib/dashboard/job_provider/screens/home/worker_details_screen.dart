@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/work_hiring_screen.dart';
 
-class WorkerDetailScreen extends StatelessWidget {
+class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
 
   const WorkerDetailScreen({
     super.key,
     required this.worker,
   });
+
+  @override
+  State<WorkerDetailScreen> createState() => _WorkerDetailScreenState();
+}
+
+class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
+  bool _isQuickSupportExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +74,7 @@ class WorkerDetailScreen extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.asset(
-                          worker.imageUrl,
+                          widget.worker.imageUrl,
                           width: 90,
                           height: 90,
                           fit: BoxFit.cover,
@@ -94,7 +101,7 @@ class WorkerDetailScreen extends StatelessWidget {
                             Row(
                               children: [
                                 Text(
-                                  worker.name,
+                                  widget.worker.name,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
@@ -141,9 +148,9 @@ class WorkerDetailScreen extends StatelessWidget {
                     children: [
                       ...List.generate(5, (index) {
                         return Icon(
-                          index < worker.rating.floor()
+                          index < widget.worker.rating.floor()
                               ? Icons.star
-                              : (index < worker.rating
+                              : (index < widget.worker.rating
                                   ? Icons.star_half
                                   : Icons.star_border),
                           color: Colors.amber,
@@ -164,7 +171,7 @@ class WorkerDetailScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                HireWorkerFormScreen(worker: worker),
+                                HireWorkerFormScreen(worker: widget.worker),
                           ),
                         );
                       },
@@ -189,50 +196,98 @@ class WorkerDetailScreen extends StatelessWidget {
               ),
             ),
 
-            // Quick Support section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            // Quick Support section (collapsible)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Quick Support',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Form fields
-                  _buildTextField('Fullname'),
-                  const SizedBox(height: 12),
-                  _buildTextField('Contact Number'),
-                  const SizedBox(height: 12),
-                  _buildTextField('Your Message', maxLines: 4),
-                  const SizedBox(height: 16),
-
-                  // Submit button
-                  SizedBox(
-                    width: 120,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.pink,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'Submit',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                  // Header with dropdown toggle
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isQuickSupportExpanded = !_isQuickSupportExpanded;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Quick Support',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Icon(
+                            _isQuickSupportExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.grey[600],
+                          ),
+                        ],
                       ),
                     ),
                   ),
+                  
+                  // Expandable content
+                  if (_isQuickSupportExpanded)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Form fields
+                          _buildTextField('Fullname'),
+                          const SizedBox(height: 12),
+                          _buildTextField('Contact Number'),
+                          const SizedBox(height: 12),
+                          _buildTextField('Your Message', maxLines: 4),
+                          const SizedBox(height: 16),
+
+                          // Submit button
+                          Center(
+                            child: SizedBox(
+                              width: 120,
+                              child: ElevatedButton(
+                                onPressed: () {},
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.pink,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Submit',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -370,7 +425,7 @@ class WorkerDetailScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         // Navigate to worker details (if not current worker)
-        if (worker.id != this.worker.id) {
+        if (worker.id != widget.worker.id) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -392,7 +447,6 @@ class WorkerDetailScreen extends StatelessWidget {
                 height: 80,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  // Add this
                   return Container(
                     width: 80,
                     height: 80,

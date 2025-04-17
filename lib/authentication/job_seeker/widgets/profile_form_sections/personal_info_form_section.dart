@@ -131,7 +131,7 @@ class PersonalInfoFormSection extends ConsumerWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEA60A7),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
+                shape: RoundedRectangleBorder( 
                   borderRadius: BorderRadius.circular(10),
                 ),
                 elevation: 0,
