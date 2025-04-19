@@ -5,7 +5,7 @@ import 'package:kozi/authentication/job_seeker/widgets/profile_form_sections/per
 import 'package:kozi/authentication/job_seeker/widgets/profile_form_sections/technical_form_section.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/authentication/job_seeker/widgets/profile_image_section.dart';
-import 'package:kozi/authentication/job_seeker/widgets/progress_bar.dart';
+import 'package:kozi/shared/progress_bar.dart';
 import 'package:kozi/shared/get_in_touch_screen.dart';
 
 class SeekerSetupProfileScreen extends ConsumerWidget {

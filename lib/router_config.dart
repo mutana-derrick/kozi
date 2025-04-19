@@ -14,7 +14,7 @@ import 'package:kozi/dashboard/job_seeker/screens/job_list/job_application_form_
 import 'package:kozi/dashboard/job_seeker/screens/job_list/job_application_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/job_list/job_list_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/payment_screen.dart';
-import 'package:kozi/dashboard/job_seeker/screens/profile_screen.dart';
+import 'package:kozi/dashboard/job_seeker/screens/profile/seeker_profile_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/seeker_dashboard_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/seeker_settings_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/status_screen.dart';

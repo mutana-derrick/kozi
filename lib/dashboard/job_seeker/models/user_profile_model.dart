@@ -5,6 +5,8 @@ class UserProfile {
   final String location;
   final String specialization;
   final int rating;
+  final String contactNumber;
+  final String dateOfBirth;
 
   UserProfile({
     required this.name,
@@ -13,5 +15,7 @@ class UserProfile {
     required this.location,
     required this.specialization,
     required this.rating,
+    this.contactNumber = '+250180000000',
+    this.dateOfBirth = 'DD MM YYYY',
   });
 }
