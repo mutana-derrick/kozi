@@ -153,7 +153,7 @@ class AddressFormSection extends ConsumerWidget {
           label,
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFF00C853),
+            color: Color.fromARGB(255, 78, 80, 80),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -204,7 +204,7 @@ class AddressFormSection extends ConsumerWidget {
           label,
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFF00C853),
+            color: Color.fromARGB(255, 78, 80, 80),
             fontWeight: FontWeight.w500,
           ),
         ),

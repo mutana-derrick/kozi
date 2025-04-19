@@ -131,7 +131,7 @@ class PersonalInfoFormSection extends ConsumerWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEA60A7),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder( 
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
                 elevation: 0,
@@ -172,7 +172,7 @@ class PersonalInfoFormSection extends ConsumerWidget {
           label,
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFF00C853),
+            color: Color.fromARGB(255, 57, 58, 58),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -223,7 +223,7 @@ class PersonalInfoFormSection extends ConsumerWidget {
           label,
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFF00C853),
+            color: Color.fromARGB(255, 78, 80, 80),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -297,7 +297,7 @@ class PersonalInfoFormSection extends ConsumerWidget {
           label,
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFF00C853),
+            color: Color.fromARGB(255, 78, 80, 80),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -317,41 +317,53 @@ class PersonalInfoFormSection extends ConsumerWidget {
             ],
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: items.contains(value) ? value : null,
-              hint: Text(
-                value,
+            child: ButtonTheme(
+              alignedDropdown: true, // This aligns the dropdown with the button
+              child: DropdownButton<String>(
+                value: items.contains(value) ? value : null,
+                hint: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF5C6BC0),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down,
+                    color: Color(0xFF5C6BC0)),
                 style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF5C6BC0),
                   fontWeight: FontWeight.w400,
                 ),
-              ),
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down,
-                  color: Color(0xFF5C6BC0)),
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF5C6BC0),
-                fontWeight: FontWeight.w400,
-              ),
-              onChanged: onChanged,
-              items: items.map<DropdownMenuItem<String>>((String item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(
-                    item,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF5C6BC0),
-                      fontWeight: FontWeight.w400,
+                onChanged: onChanged,
+                items: items.map<DropdownMenuItem<String>>((String item) {
+                  return DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(
+                      item,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF5C6BC0),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+                menuMaxHeight: 300,
+                dropdownColor: Colors.white,
+                elevation: 8,
+                itemHeight: 50,
+                alignment: AlignmentDirectional.centerStart,
+              ),
             ),
           ),
         ),
+        // Add space below to ensure there's room for the dropdown
+        const SizedBox(height: 8),
       ],
     );
   }

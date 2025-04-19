@@ -6,6 +6,9 @@ import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
 
+// Define a provider to track favorite jobs
+final favoritesProvider = StateProvider<Set<String>>((ref) => {});
+
 class JobListScreen extends ConsumerStatefulWidget {
   const JobListScreen({super.key});
 
@@ -17,6 +20,9 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'All Categories';
+
+  // Track if filter is expanded
+  bool _isFilterExpanded = false;
 
   // Static list of categories (will be replaced with API data later)
   final List<String> _categories = [
@@ -36,8 +42,10 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
   @override
   Widget build(BuildContext context) {
     final jobs = ref.watch(jobsProvider);
+    final favorites = ref.watch(favoritesProvider);
+
     // For now, implement static filtering by search query and category
-    final filteredJobs = jobs.where((job) {
+    var filteredJobs = jobs.where((job) {
       // Filter by search query
       final matchesQuery = _searchQuery.isEmpty ||
           job.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -49,6 +57,17 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
 
       return matchesQuery && matchesCategory;
     }).toList();
+
+    // Sort jobs with favorites first
+    filteredJobs.sort((a, b) {
+      if (favorites.contains(a.id) && !favorites.contains(b.id)) {
+        return -1; // a comes before b
+      } else if (!favorites.contains(a.id) && favorites.contains(b.id)) {
+        return 1; // b comes before a
+      } else {
+        return 0; // no change in order
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -73,10 +92,78 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
                   children: [
                     _buildSectionTitle('Open Jobs Opportunities!'),
                     const SizedBox(height: 16),
-                    _buildSearchAndFilterBar(),
+                    _buildSearchBar(),
+                    const SizedBox(height: 12),
+                    // Filter chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildFilterChip(
+                            label: 'All Categories',
+                            isSelected: _selectedCategory == 'All Categories',
+                            onTap: () => setState(() {
+                              _selectedCategory = 'All Categories';
+                              _isFilterExpanded = false;
+                            }),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildFilterButton(
+                            label: 'Categories',
+                            isActive: _selectedCategory != 'All Categories',
+                            isExpanded: _isFilterExpanded,
+                            onTap: () {
+                              setState(() {
+                                _isFilterExpanded = !_isFilterExpanded;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
+
+              // Expanded filter content if filter is expanded
+              if (_isFilterExpanded)
+                Container(
+                  margin:
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _categories
+                        .where((c) => c != 'All Categories')
+                        .map((category) {
+                      return _buildFilterOptionChip(
+                        label: category,
+                        isSelected: _selectedCategory == category,
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = _selectedCategory == category
+                                ? 'All Categories'
+                                : category;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+
               Expanded(
                 child: filteredJobs.isEmpty
                     ? const Center(
@@ -105,25 +192,26 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
     );
   }
 
-  Widget _buildSearchAndFilterBar() {
-    return Row(
-      children: [
-        // Search bar
-        Expanded(
-          flex: 3,
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
+  Widget _buildSearchBar() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          const Icon(Icons.search, color: Color(0xFFEA60A7)),
+          const SizedBox(width: 10),
+          Expanded(
             child: TextField(
               controller: _searchController,
               onChanged: (value) {
@@ -131,122 +219,144 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
                   _searchQuery = value;
                 });
               },
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Search for jobs...',
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFFEA60A7)),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
+                hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                contentPadding: EdgeInsets.symmetric(vertical: 15),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        // Category dropdown
-        Expanded(
-          flex: 2,
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          if (_searchQuery.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.grey),
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _searchQuery = '';
+                });
+              },
             ),
-            child: DropdownButtonHideUnderline(
-              child: ButtonTheme(
-                alignedDropdown: true,
-                child: DropdownButton<String>(
-                  value: _selectedCategory,
-                  icon: const Icon(Icons.keyboard_arrow_down,
-                      color: Color(0xFFEA60A7)),
-                  isExpanded: true,
-                  dropdownColor: Colors.white,
+          const SizedBox(width: 8),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  // Just forcing a rebuild
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEA60A7),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  items: _categories.map((String category) {
-                    return DropdownMenuItem<String>(
-                      value: category,
-                      child: Text(
-                        category,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedCategory = newValue;
-                      });
-                    }
-                  },
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              child: const Text(
+                'Search',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
 
-        const SizedBox(width: 8),
-        // Search button
-        Container(
-          height: 50,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEA60A7),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ElevatedButton(
-            onPressed: () {
-              // This will be replaced with API call later
-              // For now, the filtering happens reactively with setState
-              setState(() {
-                // Just forcing a rebuild
-              });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEA60A7),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            child: const Text(
-              'Search',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.pink[300] : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.pink[300]! : Colors.grey[300]!,
           ),
         ),
-      ],
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[600],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterButton({
+    required String label,
+    required bool isActive,
+    required bool isExpanded,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.pink[100] : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? Colors.pink[300]! : Colors.grey[300]!,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.pink[700] : Colors.grey[600],
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+              color: isActive ? Colors.pink[700] : Colors.grey[600],
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterOptionChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.pink[300] : Colors.pink[50],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.pink[700],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
+      ),
     );
   }
 
@@ -264,6 +374,10 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
   }
 
   Widget _buildJobCard(BuildContext context, Job job) {
+    // Get favorites from provider
+    final favorites = ref.watch(favoritesProvider);
+    final isFavorite = favorites.contains(job.id);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -313,10 +427,27 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
                       ),
                     ),
                     const Spacer(),
-                    const Icon(
-                      Icons.favorite,
-                      color: Colors.red,
-                      size: 20,
+                    // Interactive heart icon
+                    IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        final favoritesNotifier =
+                            ref.read(favoritesProvider.notifier);
+                        if (isFavorite) {
+                          // Remove from favorites
+                          favoritesNotifier.state = {...favorites}
+                            ..remove(job.id);
+                        } else {
+                          // Add to favorites
+                          favoritesNotifier.state = {...favorites, job.id};
+                        }
+                      },
                     ),
                   ],
                 ),
