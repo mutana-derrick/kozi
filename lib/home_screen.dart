@@ -53,7 +53,7 @@ class HomeScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.75,
+                        width: MediaQuery.of(context).size.width * 0.70,
                         child: ElevatedButton(
                           onPressed: () => _showUserTypeBottomSheet(context),
                           style: ElevatedButton.styleFrom(

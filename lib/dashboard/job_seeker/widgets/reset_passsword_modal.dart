@@ -8,17 +8,27 @@ class ResetPasswordModal extends StatefulWidget {
 }
 
 class _ResetPasswordModalState extends State<ResetPasswordModal> {
+  // Added current password controller
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  // Added obscure state for current password
+  bool _obscureCurrentPassword = true;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isResetting = false;
+
+  // Added error state for current password
+  String? _currentPasswordError;
   String? _passwordError;
   String? _confirmPasswordError;
 
   @override
   void dispose() {
+    _currentPasswordController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -26,8 +36,20 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
 
   bool _validateInputs() {
     bool isValid = true;
-    
-    // Validate password
+
+    // Validate current password
+    if (_currentPasswordController.text.isEmpty) {
+      setState(() {
+        _currentPasswordError = 'Current password is required';
+      });
+      isValid = false;
+    } else {
+      setState(() {
+        _currentPasswordError = null;
+      });
+    }
+
+    // Validate new password
     if (_passwordController.text.isEmpty) {
       setState(() {
         _passwordError = 'Password is required';
@@ -43,7 +65,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
         _passwordError = null;
       });
     }
-    
+
     // Validate confirm password
     if (_confirmPasswordController.text.isEmpty) {
       setState(() {
@@ -60,7 +82,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
         _confirmPasswordError = null;
       });
     }
-    
+
     return isValid;
   }
 
@@ -68,18 +90,22 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
     if (!_validateInputs()) {
       return;
     }
-    
+
     setState(() {
       _isResetting = true;
     });
-    
+
     // Simulate API call
     await Future.delayed(const Duration(seconds: 1));
-    
+
+    // Here you would integrate with your actual password reset API
+    // You can use the current password from _currentPasswordController.text
+    // and the new password from _passwordController.text
+
     setState(() {
       _isResetting = false;
     });
-    
+
     if (mounted) {
       // Success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -88,7 +114,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
           duration: Duration(seconds: 2),
         ),
       );
-      
+
       // Close modal and navigate back to login
       Navigator.of(context).pop();
     }
@@ -136,7 +162,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
 
             // Description
             const Text(
-              "Create a new password for your account.",
+              "Enter your current password and create a new password for your account.",
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.black54,
@@ -145,13 +171,77 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
 
             const SizedBox(height: 24),
 
+            // Current Password input field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(
+                  color: _currentPasswordError != null
+                      ? Colors.red
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: TextField(
+                controller: _currentPasswordController,
+                obscureText: _obscureCurrentPassword,
+                decoration: InputDecoration(
+                  hintText: 'Current Password',
+                  hintStyle: const TextStyle(
+                    color: Colors.black45,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrentPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureCurrentPassword = !_obscureCurrentPassword;
+                      });
+                    },
+                  ),
+                ),
+                onChanged: (_) {
+                  if (_currentPasswordError != null) {
+                    setState(() {
+                      _currentPasswordError = null;
+                    });
+                  }
+                },
+              ),
+            ),
+
+            if (_currentPasswordError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 5, left: 5),
+                child: Text(
+                  _currentPasswordError!,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
             // New Password input field
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color: _passwordError != null ? Colors.red : Colors.grey.shade300,
+                  color: _passwordError != null
+                      ? Colors.red
+                      : Colors.grey.shade300,
                 ),
               ),
               child: TextField(
@@ -169,7 +259,9 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.grey,
                     ),
                     onPressed: () {
@@ -188,7 +280,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                 },
               ),
             ),
-            
+
             if (_passwordError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 5, left: 5),
@@ -209,7 +301,9 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color: _confirmPasswordError != null ? Colors.red : Colors.grey.shade300,
+                  color: _confirmPasswordError != null
+                      ? Colors.red
+                      : Colors.grey.shade300,
                 ),
               ),
               child: TextField(
@@ -227,7 +321,9 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.grey,
                     ),
                     onPressed: () {
@@ -246,7 +342,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                 },
               ),
             ),
-            
+
             if (_confirmPasswordError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 5, left: 5),

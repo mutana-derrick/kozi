@@ -46,7 +46,8 @@ class ProfileHeader extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    _buildProfileImage(context, ref, hasProfileImage, profileState.profileImagePath),
+                    _buildProfileImage(context, ref, hasProfileImage,
+                        profileState.profileImagePath),
                   ],
                 ),
               ),
@@ -68,7 +69,8 @@ class ProfileHeader extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileImage(BuildContext context, WidgetRef ref, bool hasProfileImage, String imagePath) {
+  Widget _buildProfileImage(BuildContext context, WidgetRef ref,
+      bool hasProfileImage, String imagePath) {
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -137,14 +139,18 @@ class ProfileHeader extends ConsumerWidget {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                ref.read(profileProvider.notifier).updateProfileImagePath('/path/to/selected_image.jpg');
+                ref
+                    .read(profileProvider.notifier)
+                    .updateProfileImagePath('/path/to/selected_image.jpg');
               },
               child: const Text('Gallery'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                ref.read(profileProvider.notifier).updateProfileImagePath('/path/to/camera_image.jpg');
+                ref
+                    .read(profileProvider.notifier)
+                    .updateProfileImagePath('/path/to/camera_image.jpg');
               },
               child: const Text('Camera'),
             ),

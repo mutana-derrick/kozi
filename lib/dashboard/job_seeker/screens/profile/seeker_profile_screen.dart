@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/address_info_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/personal_info_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/technical_info_section.dart';
- import 'package:kozi/dashboard/job_seeker/widgets/profile_image_section.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/profile_image_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 
 import 'package:kozi/shared/progress_bar.dart';
-
-import 'package:kozi/shared/get_in_touch_screen.dart';
 
 class SeekerProfileScreen extends ConsumerWidget {
   const SeekerProfileScreen({super.key});
@@ -36,7 +35,8 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
     final profileState = ref.watch(profileProvider);
 
     // Calculate header height (approximation)
-    const headerHeight = 220.0; // Pink background + profile image + some padding
+    const headerHeight =
+        220.0; // Pink background + profile image + some padding
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -50,13 +50,9 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.chat, color: Colors.white),
+            icon: const Icon(Icons.settings, size: 24, color: Colors.white),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const GetInTouchScreen(),
-                ),
-              );
+              Navigator.of(context).context.push('/seekersettings');
             },
           ),
         ],
@@ -223,7 +219,8 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
                 // Save profile information
                 if (_formKey.currentState!.validate()) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile updated successfully!')),
+                    const SnackBar(
+                        content: Text('Profile updated successfully!')),
                   );
                 }
               }
