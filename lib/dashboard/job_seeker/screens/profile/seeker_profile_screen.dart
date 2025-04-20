@@ -5,23 +5,30 @@ import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/address_info_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/personal_info_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/technical_info_section.dart';
-import 'package:kozi/dashboard/job_seeker/screens/profile/profile_header_content.dart';
-
+ import 'package:kozi/dashboard/job_seeker/widgets/profile_image_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 
 import 'package:kozi/shared/progress_bar.dart';
 
 import 'package:kozi/shared/get_in_touch_screen.dart';
 
-class SeekerProfileScreen extends ConsumerStatefulWidget {
+class SeekerProfileScreen extends ConsumerWidget {
   const SeekerProfileScreen({super.key});
 
   @override
-  ConsumerState<SeekerProfileScreen> createState() =>
-      _SeekerProfileScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const _ProfileScreenContent();
+  }
 }
 
-class _SeekerProfileScreenState extends ConsumerState<SeekerProfileScreen> {
+class _ProfileScreenContent extends ConsumerStatefulWidget {
+  const _ProfileScreenContent();
+
+  @override
+  _ProfileScreenContentState createState() => _ProfileScreenContentState();
+}
+
+class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -29,8 +36,7 @@ class _SeekerProfileScreenState extends ConsumerState<SeekerProfileScreen> {
     final profileState = ref.watch(profileProvider);
 
     // Calculate header height (approximation)
-    const headerHeight =
-        220.0; // Pink background + profile image + some padding
+    const headerHeight = 220.0; // Pink background + profile image + some padding
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -75,11 +81,40 @@ class _SeekerProfileScreenState extends ConsumerState<SeekerProfileScreen> {
           ),
 
           // Fixed header content
-          const Positioned(
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: ProfileHeaderContent(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: const Column(
+                children: [
+                  Text(
+                    'Set up your profile',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'Update your profile to connect with better opportunities.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  // Profile image section (also fixed)
+                  ProfileImageSection(),
+                ],
+              ),
+            ),
           ),
 
           // Scrollable content that starts below the fixed header
@@ -108,6 +143,13 @@ class _SeekerProfileScreenState extends ConsumerState<SeekerProfileScreen> {
                       child: _buildCurrentFormSection(profileState.currentStep),
                     ),
 
+                    // Navigation buttons
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 16.0),
+                      child: _buildNavigationButtons(profileState.currentStep),
+                    ),
+
                     // Add some padding at the bottom for better scrolling experience
                     const SizedBox(height: 40),
                   ],
@@ -132,5 +174,71 @@ class _SeekerProfileScreenState extends ConsumerState<SeekerProfileScreen> {
       default:
         return const PersonalInfoSection();
     }
+  }
+
+  Widget _buildNavigationButtons(int currentStep) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (currentStep > 0)
+          SizedBox(
+            width: 150,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                side: const BorderSide(color: Color(0xFFEA60A7)),
+              ),
+              onPressed: () {
+                ref.read(profileProvider.notifier).goToPreviousStep();
+              },
+              child: const Text(
+                'Previous',
+                style: TextStyle(
+                  color: Color(0xFFEA60A7),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(width: 16),
+        SizedBox(
+          width: 150,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEA60A7),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () {
+              if (currentStep < 2) {
+                ref.read(profileProvider.notifier).goToNextStep();
+              } else {
+                // Save profile information
+                if (_formKey.currentState!.validate()) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile updated successfully!')),
+                  );
+                }
+              }
+            },
+            child: Text(
+              currentStep < 2 ? 'Next' : 'Update Profile',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
