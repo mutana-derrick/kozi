@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../providers/profile_provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:kozi/authentication/job_provider/providers/profile_provider.dart';
 
-class AddressFormSection extends ConsumerWidget {
-  const AddressFormSection({super.key});
+class PersonalInfoFormSection extends ConsumerWidget {
+  const PersonalInfoFormSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -14,7 +14,7 @@ class AddressFormSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Address Information',
+          'Personal information',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -23,120 +23,61 @@ class AddressFormSection extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // Province
+        // First Name
+        buildEditableFormField(
+          context,
+          label: 'First Name',
+          value: profileState.firstName,
+          onChanged: (value) =>
+              ref.read(profileProvider.notifier).updateFirstName(value),
+        ),
+        const SizedBox(height: 16),
+
+        // Last Name
+        buildEditableFormField(
+          context,
+          label: 'Last Name',
+          value: profileState.lastName,
+          onChanged: (value) =>
+              ref.read(profileProvider.notifier).updateLastName(value),
+        ),
+        const SizedBox(height: 16),
+
+        // Date of Birth
+        buildDatePickerField(
+          context,
+          ref,
+          label: 'Date of Birth',
+          value: profileState.dateOfBirth,
+        ),
+        const SizedBox(height: 16),
+
+        // Gender
         buildDropdownField(
           context,
-          label: 'Province',
-          value: profileState.province.isEmpty
-              ? 'Select Province'
-              : profileState.province,
-          items: const ['Kigali', 'Northern', 'Southern', 'Eastern', 'Western'],
+          label: 'Gender',
+          value: profileState.gender.isEmpty
+              ? 'Select Gender'
+              : profileState.gender,
+          items: const ['Male', 'Female', 'Other'],
           onChanged: (value) {
             if (value != null) {
-              ref.read(profileProvider.notifier).updateProvince(value);
+              ref.read(profileProvider.notifier).updateGender(value);
             }
           },
         ),
         const SizedBox(height: 16),
 
-        // District
+        // Telephone
         buildEditableFormField(
           context,
-          label: 'District',
-          value: profileState.village,
+          label: 'Telephone',
+          value: profileState.telephone,
           onChanged: (value) =>
-              ref.read(profileProvider.notifier).updateDistrict(value),
-        ),
-        const SizedBox(height: 16),
-
-        // Sector
-        buildEditableFormField(
-          context,
-          label: 'Sector',
-          value: profileState.village,
-          onChanged: (value) =>
-              ref.read(profileProvider.notifier).updateSector(value),
-        ),
-        const SizedBox(height: 16),
-
-        // Cell
-        buildEditableFormField(
-          context,
-          label: 'Cell',
-          value: profileState.village,
-          onChanged: (value) =>
-              ref.read(profileProvider.notifier).updateCell(value),
-        ),
-        const SizedBox(height: 16),
-
-        // Village
-        buildEditableFormField(
-          context,
-          label: 'Village',
-          value: profileState.village,
-          onChanged: (value) =>
-              ref.read(profileProvider.notifier).updateVillage(value),
+              ref.read(profileProvider.notifier).updateTelephone(value),
+          keyboardType: TextInputType.phone,
         ),
         const SizedBox(height: 24),
-
-        // Navigation buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 150,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  side: const BorderSide(color: Color(0xFFEA60A7)),
-                ),
-                onPressed: () {
-                  ref.read(profileProvider.notifier).goToPreviousStep();
-                },
-                child: const Text(
-                  'Previous',
-                  style: TextStyle(
-                    color: Color(0xFFEA60A7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA60A7),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 0,
-                ),
-                // onPressed: () {
-                //   // This would typically submit the form or go to a review step
-                //   // ref.read(profileProvider.notifier).submitProfile();
-                // },
-                onPressed: () {
-                  context.push('/providerdashboardscreen');
-                }, //TO DO: later it will be .go to avoid going back
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -146,6 +87,7 @@ class AddressFormSection extends ConsumerWidget {
     required String label,
     required String value,
     required Function(String) onChanged,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     final TextEditingController controller = TextEditingController(text: value);
     controller.selection = TextSelection.fromPosition(
@@ -180,6 +122,7 @@ class AddressFormSection extends ConsumerWidget {
           child: TextField(
             controller: controller,
             onChanged: onChanged,
+            keyboardType: keyboardType,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(vertical: 12),
@@ -188,6 +131,79 @@ class AddressFormSection extends ConsumerWidget {
               fontSize: 16,
               color: Color(0xFF5C6BC0),
               fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildDatePickerField(
+    BuildContext context,
+    WidgetRef ref, {
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color.fromARGB(255, 78, 80, 80),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        InkWell(
+          onTap: () async {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now(),
+            );
+
+            if (picked != null) {
+              final formattedDate =
+                  "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+              ref
+                  .read(profileProvider.notifier)
+                  .updateDateOfBirth(formattedDate);
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF5C6BC0),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const FaIcon(
+                  FontAwesomeIcons.calendar,
+                  size: 18,
+                  color: Color(0xFF5C6BC0),
+                ),
+              ],
             ),
           ),
         ),

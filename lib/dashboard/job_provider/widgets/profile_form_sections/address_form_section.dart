@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../providers/profile_provider.dart';
+import 'package:kozi/authentication/job_provider/providers/profile_provider.dart';
 
 class AddressFormSection extends ConsumerWidget {
   const AddressFormSection({super.key});
@@ -78,65 +77,6 @@ class AddressFormSection extends ConsumerWidget {
               ref.read(profileProvider.notifier).updateVillage(value),
         ),
         const SizedBox(height: 24),
-
-        // Navigation buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 150,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  side: const BorderSide(color: Color(0xFFEA60A7)),
-                ),
-                onPressed: () {
-                  ref.read(profileProvider.notifier).goToPreviousStep();
-                },
-                child: const Text(
-                  'Previous',
-                  style: TextStyle(
-                    color: Color(0xFFEA60A7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA60A7),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 0,
-                ),
-                // onPressed: () {
-                //   // This would typically submit the form or go to a review step
-                //   // ref.read(profileProvider.notifier).submitProfile();
-                // },
-                onPressed: () {
-                  context.push('/providerdashboardscreen');
-                }, //TO DO: later it will be .go to avoid going back
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }

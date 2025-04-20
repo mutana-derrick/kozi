@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
-import 'package:kozi/dashboard/job_provider/widgets/hire_success_dialog.dart'; // Import the separate file
+import 'package:kozi/dashboard/job_provider/widgets/hire_success_dialog.dart';
 
-final workingModeProvider =
-    StateProvider<String?>((ref) => null); // Changed to nullable
-
-// For the date field, add a new provider
+final workingModeProvider = StateProvider<String?>((ref) => null);
 final needWorkerTimeProvider = StateProvider<String?>((ref) => null);
+// New provider for accommodation preference
+final accommodationPreferenceProvider = StateProvider<String?>((ref) => null);
 
 class HireWorkerFormScreen extends ConsumerStatefulWidget {
   final Worker worker;
@@ -24,11 +23,17 @@ class HireWorkerFormScreen extends ConsumerStatefulWidget {
 
 class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Controller for salary range field
+  final TextEditingController _salaryRangeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _salaryRangeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // final workingMode = ref.watch(workingModeProvider);
-
     return Scaffold(
       backgroundColor: const Color(0xFFFDF2F7), // Light pink background
       appBar: AppBar(
@@ -198,6 +203,8 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
                       hintText: 'Your address',
                     ),
                     const SizedBox(height: 16),
+
+                    // Need Worker Time Dropdown
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
@@ -239,6 +246,8 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
                     ),
 
                     const SizedBox(height: 16),
+
+                    // Working Mode Dropdown
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
@@ -274,7 +283,59 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
                         },
                       ),
                     ),
+
                     const SizedBox(height: 16),
+
+                    // NEW: Accommodation Preference Dropdown
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Accommodation preference',
+                          hintStyle: TextStyle(color: Colors.grey),
+                        ),
+                        value: ref.watch(accommodationPreferenceProvider),
+                        hint: const Text('Select accommodation preference'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'Stay in', child: Text('Stay in')),
+                          DropdownMenuItem(
+                              value: 'Stay out', child: Text('Stay out')),
+                        ],
+                        onChanged: (String? value) {
+                          if (value != null) {
+                            ref
+                                .read(accommodationPreferenceProvider.notifier)
+                                .state = value;
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select accommodation preference';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // NEW: Salary Range Field
+                    _buildFormField(
+                      hintText: 'Salary range (e.g., 5000-10000 Frw)',
+                      controller: _salaryRangeController,
+                      keyboardType: TextInputType.text,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Job Description Field
                     _buildFormField(
                       hintText: 'Job description',
                       maxLines: 5,
@@ -287,34 +348,37 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
-                              // Show loading indicator
-                              showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (BuildContext context) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.pink),
-                                    ),
-                                  );
-                                },
-                              );
-
-                              // Simulate API call with a delay
-                              Future.delayed(const Duration(seconds: 2), () {
-                                // Close loading dialog
-                                Navigator.of(context).pop();
-
-                                // Show success dialog
+                              if (_formKey.currentState!.validate()) {
+                                // Show loading indicator
                                 showDialog(
                                   context: context,
                                   barrierDismissible: false,
                                   builder: (BuildContext context) {
-                                    return const HireSuccessDialog();
+                                    return const Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.pink),
+                                      ),
+                                    );
                                   },
                                 );
-                              });
+
+                                // Simulate API call with a delay
+                                Future.delayed(const Duration(seconds: 2), () {
+                                  // Close loading dialog
+                                  Navigator.of(context).pop();
+
+                                  // Show success dialog
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) {
+                                      return const HireSuccessDialog();
+                                    },
+                                  );
+                                });
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.pink,
@@ -370,11 +434,19 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
     VoidCallback? onTap,
+    TextEditingController? controller,
   }) {
     return TextFormField(
+      controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       onTap: onTap,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'This field is required';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey[400]),
@@ -393,6 +465,10 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Colors.pink),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.red.shade300),
         ),
       ),
     );

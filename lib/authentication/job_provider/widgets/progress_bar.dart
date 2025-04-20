@@ -20,7 +20,7 @@ class ProfileSetupProgressBar extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Step ${currentStep + 1}/3',
+                'Step ${currentStep + 1}/2',
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
                   fontSize: 16,

@@ -17,9 +17,14 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
   final _contactNumberController = TextEditingController();
   final _emailController = TextEditingController();
   final _messageController = TextEditingController();
-  String _requestPriority = 'Medium';
+  String _requestPriority = 'Request Priority';
 
-  final List<String> _priorityOptions = ['Low', 'Medium', 'High', 'Urgent'];
+  final List<String> _priorityOptions = [
+    'Request Priority',
+    'Medium',
+    'High',
+    'Urgent'
+  ];
 
   @override
   void dispose() {
@@ -54,19 +59,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                 child: Column(
                   children: [
                     // Top bar with back button and title
-                                        Row(
+                    Row(
                       children: [
-                        InkWell(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(Icons.arrow_back_ios_new, size: 18),
-                          ),
-                        ),
                         const SizedBox(width: 16),
                         const Text(
                           'Request Support',
@@ -79,7 +73,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         const Spacer(),
                         SettingsIconWidget(
                           iconColor: Colors.white,
-                          backgroundColor: Colors.white.withOpacity(0.3),
+                          backgroundColor: Colors.white,
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -92,7 +86,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Support text
                     const Text(
                       'Request Support',
@@ -119,7 +113,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Chat icon
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -139,7 +133,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
               ),
             ),
           ),
-          
+
           // Form Section
           Expanded(
             child: SingleChildScrollView(
@@ -157,7 +151,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Full Name
                     TextFormField(
                       controller: _fullnameController,
@@ -169,7 +163,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         ),
                         filled: true,
                         fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -179,7 +174,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Contact Number
                     TextFormField(
                       controller: _contactNumberController,
@@ -191,7 +186,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         ),
                         filled: true,
                         fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                       keyboardType: TextInputType.phone,
                       validator: (value) {
@@ -202,7 +198,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Email Address
                     TextFormField(
                       controller: _emailController,
@@ -214,7 +210,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         ),
                         filled: true,
                         fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
@@ -225,7 +222,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Request Priority
                     Container(
                       decoration: BoxDecoration(
@@ -237,7 +234,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         decoration: const InputDecoration(
                           hintText: 'Request priority',
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                         ),
                         icon: const Icon(Icons.arrow_drop_down),
                         style: TextStyle(color: Colors.grey[800], fontSize: 16),
@@ -246,7 +244,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                             _requestPriority = newValue!;
                           });
                         },
-                        items: _priorityOptions.map<DropdownMenuItem<String>>((String value) {
+                        items: _priorityOptions
+                            .map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
                             child: Text(value),
@@ -255,7 +254,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Message
                     Container(
                       decoration: BoxDecoration(
@@ -267,7 +266,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         decoration: const InputDecoration(
                           hintText: 'Messages',
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                         ),
                         maxLines: 5,
                         validator: (value) {
@@ -279,32 +279,10 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Submit and Cancel Buttons
                     Row(
                       children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                // Submit form logic
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Support request submitted!')),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.pink[400],
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                            ),
-                            child: const Text('Submit', style: TextStyle(fontSize: 16)),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
@@ -318,7 +296,33 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                                 borderRadius: BorderRadius.circular(25),
                               ),
                             ),
-                            child: const Text('Cancel', style: TextStyle(fontSize: 16)),
+                            child: const Text('Cancel',
+                                style: TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                // Submit form logic
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Support request submitted!')),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.pink[400],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: const Text('Submit',
+                                style: TextStyle(fontSize: 16)),
                           ),
                         ),
                       ],

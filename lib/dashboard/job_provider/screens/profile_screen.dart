@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/settings_screen.dart';
-import 'package:kozi/dashboard/job_provider/widgets/settings_icon.dart';
-import '../widgets/custom_bottom_navbar.dart';
+import 'package:kozi/dashboard/job_provider/widgets/custom_bottom_navbar.dart';
+import 'package:kozi/authentication/job_provider/providers/profile_provider.dart';
+import 'package:kozi/dashboard/job_provider/widgets/profile_form_sections/address_form_section.dart';
+import 'package:kozi/dashboard/job_provider/widgets/profile_form_sections/personal_info_form_section.dart';
+import 'package:kozi/authentication/job_provider/widgets/profile_image_section.dart';
+import 'package:kozi/authentication/job_provider/widgets/progress_bar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -13,224 +17,138 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'Mutesi Allen');
-  final _contactNumberController = TextEditingController(text: '+250180000000');
-  final _dateOfBirthController = TextEditingController(text: 'DD MM YYYY');
-  final _locationController = TextEditingController(text: 'Kacyiru-Kg 6470');
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _contactNumberController.dispose();
-    _dateOfBirthController.dispose();
-    _locationController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(profileProvider);
+
+    // Calculate header height (approximation)
+    const headerHeight =
+        220.0; // Pink background + profile image + some padding
+
     return Scaffold(
-      body: Column(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFEE5A9E),
+        automaticallyImplyLeading: false,
+        elevation: 0,
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Stack(
         children: [
           // Header Section with Gradient Background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFEE5A9E), Color(0xFFFF8FC8)],
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(25),
-                bottomRight: Radius.circular(25),
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    // Top bar with back button and title
-                    Row(
-                      children: [
-                        const SizedBox(width: 16),
-                        const Text(
-                          'Profile',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const Spacer(),
-                        SettingsIconWidget(
-                          iconColor: Colors.white,
-                          backgroundColor: Colors.white.withOpacity(0.3),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Profile setup text
-                    const Text(
-                      'Set up your profile',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(
-                        'Update your profile to connect your worker with better impression.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Profile picture
-                    Stack(
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: Colors.teal[300],
-                            shape: BoxShape.circle,
-                            image: const DecorationImage(
-                              image:
-                                  AssetImage('assets/profile_placeholder.png'),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.8),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              size: 20,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 160,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFEE5A9E), Color(0xFFFF8FC8)],
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
                 ),
               ),
             ),
           ),
 
-          // Form Section
-          Expanded(
+          // Fixed header content
+          Positioned(
+            top: 0, // Adjusted from 70 since we moved to AppBar
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: const Column(
+                children: [
+                  Text(
+                    'Set up your profile',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'Update your profile to connect with workers more effectively.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  // Profile image section (also fixed)
+                  ProfileImageSection(),
+                ],
+              ),
+            ),
+          ),
+
+          // Scrollable content that starts below the fixed header
+          Positioned(
+            top: headerHeight,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Personal information',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Name Field
-                    _buildProfileField(
-                      label: 'Name',
-                      controller: _nameController,
-                      readOnly: true,
-                      showEdit: false,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Contact Number Field
-                    _buildProfileField(
-                      label: 'Contact Number',
-                      controller: _contactNumberController,
-                      keyboardType: TextInputType.phone,
-                      showEdit: true,
-                      onEditPressed: () {
-                        // Show edit dialog
-                        _showEditDialog(
-                            'Contact Number', _contactNumberController);
+                    // Progress bar
+                    ProfileSetupProgressBar(
+                      currentStep: profileState.currentStep,
+                      onStepTapped: (step) {
+                        ref.read(profileProvider.notifier).goToStep(step);
                       },
                     ),
-                    const SizedBox(height: 16),
 
-                    // Date of Birth Field
-                    _buildProfileField(
-                      label: 'Date of birth',
-                      controller: _dateOfBirthController,
-                      showEdit: true,
-                      onEditPressed: () {
-                        // Show date picker
-                        _showDatePicker();
-                      },
+                    // Form sections - show based on current step
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      child: _buildCurrentFormSection(profileState.currentStep),
                     ),
-                    const SizedBox(height: 16),
 
-                    // Location Field
-                    _buildProfileField(
-                      label: 'Location',
-                      controller: _locationController,
-                      readOnly: true,
-                      showEdit: false,
+                    // Navigation buttons
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 16.0),
+                      child: _buildNavigationButtons(profileState.currentStep),
                     ),
-                    const SizedBox(height: 24),
 
-                    // Update Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // Update profile logic
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text('Profile updated successfully!')),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink[400],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
-                        child: const Text('Update',
-                            style: TextStyle(fontSize: 16)),
-                      ),
-                    ),
+                    // Add some padding at the bottom for better scrolling experience
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -242,120 +160,83 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileField({
-    required String label,
-    required TextEditingController controller,
-    bool readOnly = false,
-    bool showEdit = false,
-    TextInputType keyboardType = TextInputType.text,
-    VoidCallback? onEditPressed,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCurrentFormSection(int step) {
+    switch (step) {
+      case 0:
+        return const PersonalInfoFormSection();
+      case 1:
+        return const AddressFormSection();
+      // case 2:
+      //   return const TechnicalFormSection();
+      default:
+        return const PersonalInfoFormSection();
+    }
+  }
+
+  Widget _buildNavigationButtons(int currentStep) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.teal[400],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 40),
-                child: TextFormField(
-                  controller: controller,
-                  readOnly: readOnly,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  keyboardType: keyboardType,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'This field cannot be empty';
-                    }
-                    return null;
-                  },
+        if (currentStep > 0)
+          SizedBox(
+            width: 150,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                side: const BorderSide(color: Color(0xFFEA60A7)),
+              ),
+              onPressed: () {
+                ref.read(profileProvider.notifier).goToPreviousStep();
+              },
+              child: const Text(
+                'Previous',
+                style: TextStyle(
+                  color: Color(0xFFEA60A7),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              if (showEdit)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: IconButton(
-                    icon: Icon(Icons.edit, color: Colors.teal[400], size: 20),
-                    onPressed: onEditPressed,
-                  ),
-                ),
-            ],
+            ),
+          ),
+        const SizedBox(width: 16),
+        SizedBox(
+          width: 150,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEA60A7),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () {
+              if (currentStep < 1) {
+                ref.read(profileProvider.notifier).goToNextStep();
+              } else {
+                // Save profile information
+                if (_formKey.currentState!.validate()) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Profile updated successfully!')),
+                  );
+                }
+              }
+            },
+            child: Text(
+              currentStep < 1 ? 'Next' : 'Update Profile',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ],
     );
-  }
-
-  void _showEditDialog(String title, TextEditingController controller) {
-    final TextEditingController dialogController =
-        TextEditingController(text: controller.text);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Edit $title'),
-          content: TextField(
-            controller: dialogController,
-            decoration: InputDecoration(
-              hintText: 'Enter your $title',
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  controller.text = dialogController.text;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showDatePicker() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _dateOfBirthController.text =
-            '${picked.day.toString().padLeft(2, '0')} ${picked.month.toString().padLeft(2, '0')} ${picked.year}';
-      });
-    }
   }
 }
