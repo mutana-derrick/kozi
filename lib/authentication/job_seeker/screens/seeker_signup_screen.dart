@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kozi/shared/policy_modal.dart';
 import '../widgets/otp_verification_popup.dart';
+import '../providers/auth_provider.dart';
 
 // Provider for password visibility state
 final passwordVisibilityProvider = StateProvider<bool>((ref) => false);
@@ -22,6 +23,7 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -47,18 +49,48 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
     );
   }
 
-  void _processSignUp(String otp) {
-    // Here you would validate the OTP and complete the signup process
-    // For demo purposes, just show a snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Account created successfully with OTP: $otp'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  Future<void> _processSignUp(String otp) async {
+    // Prepare signup data
+    final signupData = {
+      'email': _emailController.text,
+      'first_name': _firstNameController.text,
+      'last_name': _lastNameController.text,
+      'password': _passwordController.text,
+      'role_id': 3, // Assuming 3 is for job seekers
+      'gender': 'Other', // Default value, can be updated later
+      'full_name': '${_firstNameController.text} ${_lastNameController.text}',
+      'picture': '', // Can be updated later
+      'verifiedEmail': true, // Since we verified with OTP
+      'token': otp,
+      'verification_code': otp,
+    };
 
-    // Navigate to next screen or show success message
-    // For example: context.push('/complete-profile');
+    final authState = ref.read(authProvider);
+    
+    if (authState.isLoading) return;
+
+    // Attempt signup
+    final success = await ref.read(authProvider.notifier).signup(signupData);
+    
+    if (success) {
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      
+        // Navigate to login or complete profile
+        context.push('/seekerlogin');
+      }
+    } else {
+      // Show error
+      setState(() {
+        _errorMessage = ref.read(authProvider).errorMessage ?? 'Signup failed';
+      });
+    }
   }
 
   @override
@@ -68,6 +100,8 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
     // Watch the terms agreement state
     final hasAgreedToTerms = ref.watch(termsAgreementProvider);
     final screenHeight = MediaQuery.of(context).size.height;
+    // Watch auth state for loading
+    final authState = ref.watch(authProvider);
 
     return Scaffold(
       body: Container(
@@ -78,14 +112,6 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
             colors: [Color(0xFFF8BADC), Color.fromARGB(255, 250, 240, 245)],
           ),
         ),
-
-        // decoration: const BoxDecoration(
-        //   gradient: LinearGradient(
-        //     begin: Alignment.topLeft,
-        //     end: Alignment.bottomRight,
-        //     colors: [Color(0xFFF8BADC), Color(0xFFD1F5F8)],
-        //   ),
-        // ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -306,6 +332,20 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
 
                       const SizedBox(height: 16),
 
+                      // Error message if any
+                      // Error message if any
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+
                       // Terms and Conditions Checkbox
                       Row(
                         children: [
@@ -369,8 +409,19 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
 
                       // Sign Up Button
                       ElevatedButton(
-                        onPressed: hasAgreedToTerms
+                        onPressed: hasAgreedToTerms && !authState.isLoading
                             ? () {
+                                // Basic validation
+                                if (_emailController.text.isEmpty || 
+                                    _firstNameController.text.isEmpty ||
+                                    _lastNameController.text.isEmpty ||
+                                    _passwordController.text.isEmpty) {
+                                  setState(() {
+                                    _errorMessage = 'All fields are required';
+                                  });
+                                  return;
+                                }
+                                
                                 // Show OTP verification popup
                                 _showOtpVerification();
                               }
@@ -385,13 +436,22 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
                           disabledBackgroundColor:
                               const Color(0xFFEA60A7).withOpacity(0.5),
                         ),
-                        child: const Text(
-                          'Sign up',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        child: authState.isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Sign up',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                       ),
 
                       const SizedBox(height: 16),

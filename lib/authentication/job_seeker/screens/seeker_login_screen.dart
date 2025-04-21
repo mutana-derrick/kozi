@@ -1,19 +1,73 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/forgot_password/email_verification_modal.dart';
 
 // Provider for password visibility state
 final passwordVisibilityProvider = StateProvider<bool>((ref) => false);
 
-class SeekerLoginScreen extends ConsumerWidget {
+class SeekerLoginScreen extends ConsumerStatefulWidget {
   const SeekerLoginScreen({super.key}); 
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SeekerLoginScreen> createState() => _SeekerLoginScreenState();
+}
+
+class _SeekerLoginScreenState extends ConsumerState<SeekerLoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  // ignore: unused_field
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    // Validate inputs
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter both email and password';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // Use the auth provider to login
+    final success = await ref.read(authProvider.notifier).login(
+      _emailController.text,
+      _passwordController.text,
+    );
+
+    if (success) {
+      // Navigate to setup profile or dashboard based on your app flow
+      context.go('/seekersetupprofile');
+    } else {
+      // Show error from auth state
+      final authState = ref.read(authProvider);
+      setState(() {
+        _errorMessage = authState.errorMessage ?? 'Login failed';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Watch the password visibility state
     final isPasswordVisible = ref.watch(passwordVisibilityProvider);
     final screenHeight = MediaQuery.of(context).size.height;
+    // Watch auth state for loading
+    final authState = ref.watch(authProvider);
 
     return Scaffold(
       body: Container(
@@ -122,10 +176,11 @@ class SeekerLoginScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        child: const TextField(
+                        child: TextField(
+                          controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            hintText: 'seeker0@gmail.com',
+                          decoration: const InputDecoration(
+                            hintText: 'Email',
                             hintStyle: TextStyle(
                               color: Colors.black45,
                               fontSize: 16,
@@ -135,10 +190,6 @@ class SeekerLoginScreen extends ConsumerWidget {
                               horizontal: 16,
                               vertical: 16,
                             ),
-                            // suffixIcon: Icon(
-                            //   Icons.check,
-                            //   color: Colors.green,
-                            // ),
                           ),
                         ),
                       ),
@@ -160,6 +211,7 @@ class SeekerLoginScreen extends ConsumerWidget {
                           ],
                         ),
                         child: TextField(
+                          controller: _passwordController,
                           obscureText: !isPasswordVisible,
                           decoration: InputDecoration(
                             hintText: '••••••••',
@@ -189,13 +241,26 @@ class SeekerLoginScreen extends ConsumerWidget {
                         ),
                       ),
 
+                      // Error message if any
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+
                       SizedBox(height: screenHeight * 0.03),
 
                       // Login Button
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
                         child: ElevatedButton(
-                          onPressed: () => context.push('/seekersetupprofile'),
+                          onPressed: authState.isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEA60A7),
                             foregroundColor: Colors.white,
@@ -204,13 +269,22 @@ class SeekerLoginScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          child: authState.isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                         ),
                       ),
 

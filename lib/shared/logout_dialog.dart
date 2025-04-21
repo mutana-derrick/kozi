@@ -1,44 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 
-class CustomLogoutDialog extends StatelessWidget {
-  final VoidCallback onConfirm;
+class CustomLogoutDialog extends ConsumerWidget {
   final VoidCallback? onCancel;
 
   const CustomLogoutDialog({
     super.key,
-    required this.onConfirm,
     this.onCancel,
   });
 
   /// Shows the logout confirmation dialog
   static Future<bool?> show(
     BuildContext context, {
-    required VoidCallback onConfirm,
     VoidCallback? onCancel,
   }) {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) => CustomLogoutDialog(
-        onConfirm: onConfirm,
         onCancel: onCancel,
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       elevation: 0,
       backgroundColor: Colors.transparent,
-      child: _buildDialogContent(context),
+      child: _buildDialogContent(context, ref),
     );
   }
 
-  Widget _buildDialogContent(BuildContext context) {
+  Widget _buildDialogContent(BuildContext context, WidgetRef ref) {
     return Container(
       width: 300,
       padding: const EdgeInsets.all(20),
@@ -85,9 +84,15 @@ class CustomLogoutDialog extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                  onConfirm();
+                onPressed: () async {
+                  // Perform logout using auth provider
+                  await ref.read(authProvider.notifier).logout();
+                  
+                  if (context.mounted) {
+                    Navigator.of(context).pop(true);
+                    // Navigate to login screen
+                    context.go('/seekerlogin');
+                  }
                 },
                 child: const Text(
                   'Ok',

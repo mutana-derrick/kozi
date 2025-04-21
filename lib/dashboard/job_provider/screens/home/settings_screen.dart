@@ -274,19 +274,8 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _handleLogout(BuildContext context, WidgetRef ref) {
-    CustomLogoutDialog.show(
-      context,
-      onConfirm: () {
-        // Implement your logout logic here
-        // For example:
-        // ref.read(authProvider.notifier).logout();
-
-        // Navigate to login screen
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
-      },
-    );
-  }
+  CustomLogoutDialog.show(context);
+}
 
   Widget _buildSettingsOption({
     required IconData icon,

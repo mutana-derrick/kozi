@@ -20,6 +20,7 @@ import 'package:kozi/dashboard/job_seeker/screens/seeker_settings_screen.dart';
 import 'package:kozi/dashboard/job_seeker/screens/status_screen.dart';
 import 'package:kozi/home_screen.dart';
 import 'package:kozi/onboarding_screen.dart';
+import 'package:kozi/services/auth_guard.dart';
 import 'package:kozi/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -79,44 +80,62 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/seekersetupprofile',
-        builder: (context, state) => const SeekerSetupProfileScreen(),
+        builder: (context, state) => const AuthGuard(
+          child: SeekerSetupProfileScreen(),
+        ),
       ),
       GoRoute(
         path: '/seekerdashboardscreen',
-        builder: (context, state) => const SeekerDashboardScreen(),
+        builder: (context, state) => const AuthGuard(
+          child:  SeekerDashboardScreen(),
+        ),
       ),
       GoRoute(
         path: '/jobs',
-        builder: (context, state) => const JobListScreen(),
+        builder: (context, state) => const AuthGuard(
+          child:  JobListScreen(),
+        ),
       ),
       GoRoute(
         path: '/status',
-        builder: (context, state) => const StatusScreen(),
+        builder: (context, state) => const AuthGuard(
+          child:  StatusScreen(),
+        ),
       ),
       GoRoute(
         path: '/payment',
-        builder: (context, state) => const PaymentScreen(),
+        builder: (context, state) => const AuthGuard(
+          child: PaymentScreen(),
+        ),
       ),
       GoRoute(
         path: '/seekerprofile',
-        builder: (context, state) => const SeekerProfileScreen(),
+        builder: (context, state) =>const AuthGuard(
+          child:  SeekerProfileScreen(),
+        ),
       ),
       GoRoute(
         path: '/seekersettings',
-        builder: (context, state) => const SeekerSettingsScreen(),
+        builder: (context, state) =>const AuthGuard(
+          child:  SeekerSettingsScreen(),
+        ),
       ),
       GoRoute(
         path: '/job/:id',
         builder: (context, state) {
           final jobId = state.pathParameters['id']!;
-          return JobApplicationScreen(jobId: jobId);
+          return AuthGuard(
+            child: JobApplicationScreen(jobId: jobId),
+          );
         },
       ),
       GoRoute(
         path: '/apply/:id/form',
         builder: (context, state) {
           final jobId = state.pathParameters['id']!;
-          return JobApplicationFormScreen(jobId: jobId);
+          return AuthGuard(
+            child: JobApplicationFormScreen(jobId: jobId),
+          );
         },
       ),
     ],

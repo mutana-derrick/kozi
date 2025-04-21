@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
-
+  
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _opacityAnimation;
   late Animation<Offset> _slideAnimation;
-
+  
   @override
   void initState() {
     super.initState();
@@ -22,7 +24,6 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-
     // Create opacity animation
     _opacityAnimation = Tween<double>(
       begin: 0.0,
@@ -31,7 +32,6 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _animationController,
       curve: Curves.easeIn,
     ));
-
     // Create slide animation
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.5),
@@ -40,28 +40,46 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _animationController,
       curve: Curves.easeOut,
     ));
-
     // Start the animation
     _animationController.forward();
-
-    // Navigate to onboarding screen after 5 seconds
-    Future.delayed(const Duration(seconds: 4), () {
-      context.go('/onboarding');
-    });
+    
+    // Check authentication and navigate after animations complete
+    _checkAuthAndNavigate();
   }
-
+  
+  Future<void> _checkAuthAndNavigate() async {
+    // Wait for animation to complete
+    await Future.delayed(const Duration(seconds: 3));
+    
+    if (!mounted) return;
+    
+    // Check if user is authenticated using the ApiService
+    final apiService = ref.read(apiServiceProvider);
+    final isLoggedIn = await apiService.isLoggedIn();
+    
+    if (!mounted) return;
+    
+    if (isLoggedIn) {
+      // If authenticated, go to dashboard
+      context.go('/seekerdashboardscreen');
+    } else {
+      // If not authenticated, go to onboarding first
+      context.go('/onboarding');
+    }
+  }
+  
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          // Using background image 
+          // Using background image
           image: DecorationImage(
             image: AssetImage('assets/images/splash/splash_background.png'),
             fit: BoxFit.cover,
@@ -98,6 +116,19 @@ class _SplashScreenState extends State<SplashScreen>
                       color: Colors.black,
                       height: 1.4,
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              // Optional loading indicator at the bottom
+              FadeTransition(
+                opacity: _opacityAnimation,
+                child: const SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEA60A7)),
+                    strokeWidth: 3,
                   ),
                 ),
               ),

@@ -1,15 +1,168 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/profile_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
+import 'package:kozi/authentication/job_seeker/providers/category_provider.dart';
+import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 
-class TechnicalFormSection extends ConsumerWidget {
+// import 'dart:io';
+
+class TechnicalFormSection extends ConsumerStatefulWidget {
   const TechnicalFormSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileState = ref.watch(profileProvider);
+  ConsumerState<TechnicalFormSection> createState() =>
+      _TechnicalFormSectionState();
+}
 
+class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  Future<void> _submitProfile() async {
+    final profileState = ref.read(profileProvider);
+    final apiService = ref.read(apiServiceProvider);
+
+    // Basic validation
+    if (profileState.expectedSalary.isEmpty ||
+        profileState.category.isEmpty ||
+        profileState.skills.isEmpty ||
+        profileState.newIdCardPath.isEmpty ||
+        profileState.profileImagePath.isEmpty ||
+        profileState.cvPath.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please fill all required fields';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final userId = await apiService.getUserId();
+      if (userId == null) {
+        setState(() {
+          _errorMessage = 'User ID not found. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Prepare the data
+      final data = {
+        'first_name': profileState.firstName,
+        'last_name': profileState.lastName,
+        'gender': profileState.gender,
+        'fathers_name': profileState.fathersName,
+        'mothers_name': profileState.mothersName,
+        'telephone': profileState.telephone,
+        'province': profileState.province,
+        'district': profileState.district,
+        'sector': profileState.sector,
+        'cell': profileState.cell,
+        'village': profileState.village,
+        'date_of_birth': profileState.dateOfBirth,
+        'disability': profileState.disability,
+        'salary': profileState.expectedSalary,
+        'bio': profileState.skills,
+        'categories_id': getCategoryId(profileState.category),
+        'image': profileState.profileImagePath,
+        'id': profileState.newIdCardPath,
+        'cv': profileState.cvPath,
+      };
+
+      final result = await apiService.updateUserProfile(userId, data);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success']) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          context.go('/seekerdashboardscreen');
+        }
+      } else {
+        setState(() {
+          _errorMessage = result['message'] ?? 'Failed to update profile';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'An error occurred: $e';
+      });
+    }
+  }
+
+  // Helper method to get category ID - in a real app, you would have a proper mapping
+  String getCategoryId(String categoryName) {
+    // This is a placeholder - in a real app, you would have a mapping or API call
+    final Map<String, String> categoryMap = {
+      'Basic Worker': '1',
+      'Advanced Worker': '2',
+    };
+
+    return categoryMap[categoryName] ?? '1';
+  }
+
+  // Image picker
+  Future<String?> _pickImage(BuildContext context) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 75,
+      );
+
+      if (image != null) {
+        return image.path;
+      }
+      return null;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+      return null;
+    }
+  }
+
+  // File picker
+  Future<String?> _pickFile(BuildContext context) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx'],
+      );
+
+      if (result != null) {
+        return result.files.single.path;
+      }
+      return null;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking file: $e')),
+      );
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileState = ref.watch(profileProvider);
+    // Categories from API - Move this line here
+    final categoriesAsync = ref.watch(categoriesProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -22,6 +175,23 @@ class TechnicalFormSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
+
+        // Display error message if any
+        if (_errorMessage != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(color: Colors.red[700]),
+            ),
+          ),
 
         // Expected Salary
         buildDropdownField(
@@ -44,18 +214,46 @@ class TechnicalFormSection extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Category
-        buildDropdownField(
-          context,
-          label: 'Category',
-          value: profileState.category.isEmpty
-              ? 'Select Category'
-              : profileState.category,
-          items: const ['Basic Worker', 'Advanced Worker'],
-          onChanged: (value) {
-            if (value != null) {
-              ref.read(profileProvider.notifier).updateCategory(value);
-            }
+        // Category
+        categoriesAsync.when(
+          data: (categories) {
+            final categoryNames = getAllCategoryNames(categories);
+
+            return buildDropdownField(
+              context,
+              label: 'Category',
+              value: profileState.category.isEmpty
+                  ? 'Select Category'
+                  : profileState.category,
+              items: categoryNames.isEmpty
+                  ? ['Basic Worker', 'Advanced Worker'] // Fallback
+                  : categoryNames,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(profileProvider.notifier).updateCategory(value);
+                }
+              },
+            );
           },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (error, _) => buildDropdownField(
+            context,
+            label: 'Category',
+            value: profileState.category.isEmpty
+                ? 'Select Category'
+                : profileState.category,
+            items: const ['Basic Worker', 'Advanced Worker'], // Fallback
+            onChanged: (value) {
+              if (value != null) {
+                ref.read(profileProvider.notifier).updateCategory(value);
+              }
+            },
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -70,8 +268,7 @@ class TechnicalFormSection extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // New ID Card File Upload
-        // New ID Card File Upload
+        // ID Card Upload
         buildFileUploadField(
           context,
           label: 'ID Card',
@@ -79,14 +276,10 @@ class TechnicalFormSection extends ConsumerWidget {
               ? 'No file chosen'
               : profileState.newIdCardPath.split('/').last,
           onTap: () async {
-            // Here you would implement file picking functionality
-            // This is a placeholder for the actual implementation
-            // You'll need to use a file picker package like file_picker
-
-            // Mock implementation:
-            const filePath =
-                '/path/to/id_card.jpg'; // This would come from the file picker
-            ref.read(profileProvider.notifier).updateNewIdCardPath(filePath);
+            final filePath = await _pickImage(context);
+            if (filePath != null) {
+              ref.read(profileProvider.notifier).updateNewIdCardPath(filePath);
+            }
           },
         ),
         const SizedBox(height: 16),
@@ -99,10 +292,12 @@ class TechnicalFormSection extends ConsumerWidget {
               ? 'No file chosen'
               : profileState.profileImagePath.split('/').last,
           onTap: () async {
-            // Mock implementation:
-            const filePath =
-                '/path/to/profile.jpg'; // This would come from the file picker
-            ref.read(profileProvider.notifier).updateProfileImagePath(filePath);
+            final filePath = await _pickImage(context);
+            if (filePath != null) {
+              ref
+                  .read(profileProvider.notifier)
+                  .updateProfileImagePath(filePath);
+            }
           },
         ),
         const SizedBox(height: 16),
@@ -115,10 +310,10 @@ class TechnicalFormSection extends ConsumerWidget {
               ? 'No file chosen'
               : profileState.cvPath.split('/').last,
           onTap: () async {
-            // Mock implementation:
-            const filePath =
-                '/path/to/resume.pdf'; // This would come from the file picker
-            ref.read(profileProvider.notifier).updateCvPath(filePath);
+            final filePath = await _pickFile(context);
+            if (filePath != null) {
+              ref.read(profileProvider.notifier).updateCvPath(filePath);
+            }
           },
         ),
         const SizedBox(height: 24),
@@ -133,13 +328,15 @@ class TechnicalFormSection extends ConsumerWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10), 
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   side: const BorderSide(color: Color(0xFFEA60A7)),
                 ),
-                onPressed: () {
-                  ref.read(profileProvider.notifier).goToPreviousStep();
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        ref.read(profileProvider.notifier).goToPreviousStep();
+                      },
                 child: const Text(
                   'Previous',
                   style: TextStyle(
@@ -162,21 +359,24 @@ class TechnicalFormSection extends ConsumerWidget {
                   ),
                   elevation: 0,
                 ),
-                // onPressed: () {
-                //   // This would typically submit the form or go to a review step
-                //   // ref.read(profileProvider.notifier).submitProfile();
-                // },
-                onPressed: () {
-                  context.push('/seekerdashboardscreen');
-                },
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                onPressed: _isLoading ? null : _submitProfile,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Submit',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -185,6 +385,7 @@ class TechnicalFormSection extends ConsumerWidget {
     );
   }
 
+  // Reusing your existing widget methods
   Widget buildMultilineFormField(
     BuildContext context, {
     required String label,

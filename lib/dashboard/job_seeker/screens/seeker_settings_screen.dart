@@ -154,9 +154,8 @@ class SeekerSettingsScreen extends ConsumerWidget {
                                     // Navigate to profile page
                                     context.push('/seekerprofile');
 
-                                    ref
-                                        .read(selectedNavIndex.notifier)
-                                        .state = 4;
+                                    ref.read(selectedNavIndex.notifier).state =
+                                        4;
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFEE5A9E),
@@ -275,18 +274,7 @@ class SeekerSettingsScreen extends ConsumerWidget {
   }
 
   void _handleLogout(BuildContext context, WidgetRef ref) {
-    CustomLogoutDialog.show(
-      context,
-      onConfirm: () {
-        // Implement your logout logic here
-        // For example:
-        // ref.read(authProvider.notifier).logout();
-
-        // Navigate to login screen
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
-      },
-    );
+    CustomLogoutDialog.show(context);
   }
 
   Widget _buildSettingsOption({
