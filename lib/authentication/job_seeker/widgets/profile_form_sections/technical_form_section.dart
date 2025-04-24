@@ -7,7 +7,6 @@ import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 import 'package:kozi/authentication/job_seeker/providers/category_provider.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 
-// import 'dart:io';
 
 class TechnicalFormSection extends ConsumerStatefulWidget {
   const TechnicalFormSection({super.key});
