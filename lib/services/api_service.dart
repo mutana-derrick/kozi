@@ -297,61 +297,174 @@ class ApiService {
   }
 
 // Add this method to get a specific category type
-Future<Map<String, dynamic>?> getCategoryType(String typeId) async {
-  try {
-    final token = await _storage.read(key: 'auth_token');
-    if (token == null) {
+  Future<Map<String, dynamic>?> getCategoryType(String typeId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return null;
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/category-types/$typeId',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+
+      return null;
+    } catch (e) {
+      print('Error fetching category type: $e');
       return null;
     }
-
-    final response = await _dio.get(
-      '$baseUrl/category-types/$typeId',
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $token'
-        },
-      ),
-    );
-
-    if (response.statusCode == 200 && response.data != null) {
-      return Map<String, dynamic>.from(response.data);
-    }
-    
-    return null;
-  } catch (e) {
-    print('Error fetching category type: $e');
-    return null;
   }
-}
 
 // Add this method to get categories by type
-Future<List<Map<String, dynamic>>> getCategoriesByType(String typeId) async {
-  try {
-    final token = await _storage.read(key: 'auth_token');
-    if (token == null) {
+  Future<List<Map<String, dynamic>>> getCategoriesByType(String typeId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return [];
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/categories/$typeId',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> rawData = response.data;
+        return rawData.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+
+      return [];
+    } catch (e) {
+      print('Error fetching categories by type: $e');
       return [];
     }
-
-    final response = await _dio.get(
-      '$baseUrl/categories/$typeId',
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $token'
-        },
-      ),
-    );
-
-    if (response.statusCode == 200 && response.data != null) {
-      final List<dynamic> rawData = response.data;
-      return rawData.map((item) => Map<String, dynamic>.from(item)).toList();
-    }
-    
-    return [];
-  } catch (e) {
-    print('Error fetching categories by type: $e');
-    return [];
   }
-}
+
+// Get user profile progress
+  Future<Map<String, dynamic>> getProfileProgress(String userId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/progress/$userId',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'progress': response.data['progress'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to fetch progress',
+        };
+      }
+    } catch (e) {
+      print('Error fetching profile progress: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
+
+// Get all jobs
+  Future<List<Map<String, dynamic>>> getJobs() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return [];
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/admin/select_jobs',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> rawData = response.data;
+        return rawData.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+
+      return [];
+    } catch (e) {
+      print('Error fetching jobs: $e');
+      return [];
+    }
+  }
+
+// Apply for a job
+  Future<Map<String, dynamic>> applyForJob(String jobId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final userId = await getUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'User ID not found'};
+      }
+
+      // Get job_seeker_id from profile
+      final profileResult = await getUserProfile(userId);
+      if (!profileResult['success'] || profileResult['data'] == null) {
+        return {'success': false, 'message': 'Failed to fetch profile'};
+      }
+
+      final jobSeekerId = profileResult['data']['job_seeker_id'];
+      if (jobSeekerId == null) {
+        return {'success': false, 'message': 'Job seeker ID not found'};
+      }
+
+      final response = await _dio.post(
+        '$baseUrl/seeker/apply',
+        data: {
+          'job_id': jobId,
+          'job_seeker_id': jobSeekerId,
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Successfully applied for job',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to apply for job',
+        };
+      }
+    } catch (e) {
+      print('Error applying for job: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
 
   // Logout
   Future<void> logout() async {
