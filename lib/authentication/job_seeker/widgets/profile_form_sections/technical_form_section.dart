@@ -7,7 +7,6 @@ import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 import 'package:kozi/authentication/job_seeker/providers/category_provider.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 
-
 class TechnicalFormSection extends ConsumerStatefulWidget {
   const TechnicalFormSection({super.key});
 
@@ -19,6 +18,15 @@ class TechnicalFormSection extends ConsumerStatefulWidget {
 class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Reset selected category type when the form is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedCategoryTypeProvider.notifier).state = null;
+    });
+  }
 
   Future<void> _submitProfile() async {
     final profileState = ref.read(profileProvider);
@@ -52,6 +60,18 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
         return;
       }
 
+      // Get category ID based on selection
+      String categoryId = '1'; // Default fallback
+      final categoriesAsync = ref.read(categoryTypesProvider);
+      
+      await categoriesAsync.when(
+        data: (categories) {
+          categoryId = getCategoryIdByName(categories, profileState.category);
+        },
+        loading: () {},
+        error: (_, __) {},
+      );
+
       // Prepare the data
       final data = {
         'first_name': profileState.firstName,
@@ -69,7 +89,7 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
         'disability': profileState.disability,
         'salary': profileState.expectedSalary,
         'bio': profileState.skills,
-        'categories_id': getCategoryId(profileState.category),
+        'categories_id': categoryId,
         'image': profileState.profileImagePath,
         'id': profileState.newIdCardPath,
         'cv': profileState.cvPath,
@@ -103,17 +123,6 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
         _errorMessage = 'An error occurred: $e';
       });
     }
-  }
-
-  // Helper method to get category ID - in a real app, you would have a proper mapping
-  String getCategoryId(String categoryName) {
-    // This is a placeholder - in a real app, you would have a mapping or API call
-    final Map<String, String> categoryMap = {
-      'Basic Worker': '1',
-      'Advanced Worker': '2',
-    };
-
-    return categoryMap[categoryName] ?? '1';
   }
 
   // Image picker
@@ -160,8 +169,13 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
-    // Categories from API - Move this line here
-    final categoriesAsync = ref.watch(categoriesProvider);
+    // Watch category types
+    final categoryTypesAsync = ref.watch(categoryTypesProvider);
+    // Watch selected category type
+    final selectedCategoryType = ref.watch(selectedCategoryTypeProvider);
+    // Watch filtered categories
+    final filteredCategories = ref.watch(filteredCategoriesProvider);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,8 +215,10 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
               : profileState.expectedSalary,
           items: const [
             '35000RWF-99000RWF',
-            '159000RWF-199000RWF',
-            '200000RWF-299000RWF'
+            '100000RWF-149000RWF',
+            '150000RWF-199000RWF',
+            '200000RWF-299000RWF',
+            '300000RWF and above'
           ],
           onChanged: (value) {
             if (value != null) {
@@ -212,24 +228,31 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
         ),
         const SizedBox(height: 16),
 
-        // Category
-        // Category
-        categoriesAsync.when(
-          data: (categories) {
-            final categoryNames = getAllCategoryNames(categories);
-
+        // Category Type dropdown
+        categoryTypesAsync.when(
+          data: (categoryTypes) {
+            final categoryTypeNames = getAllCategoryTypeNames(categoryTypes);
+            
             return buildDropdownField(
               context,
-              label: 'Category',
-              value: profileState.category.isEmpty
-                  ? 'Select Category'
-                  : profileState.category,
-              items: categoryNames.isEmpty
-                  ? ['Basic Worker', 'Advanced Worker'] // Fallback
-                  : categoryNames,
+              label: 'Category Type',
+              value: selectedCategoryType != null 
+                  ? categoryTypes.firstWhere(
+                      (type) => type['type_id'].toString() == selectedCategoryType,
+                      orElse: () => {'type_name': 'Select Category Type'},
+                    )['type_name']
+                  : 'Select Category Type',
+              items: categoryTypeNames.isEmpty
+                  ? ['Worker', 'Specialist'] // Fallback
+                  : categoryTypeNames,
               onChanged: (value) {
                 if (value != null) {
-                  ref.read(profileProvider.notifier).updateCategory(value);
+                  final typeId = getCategoryTypeIdByName(categoryTypes, value);
+                  if (typeId != null) {
+                    ref.read(selectedCategoryTypeProvider.notifier).state = typeId;
+                    // Clear the selected category when type changes
+                    ref.read(profileProvider.notifier).updateCategory('');
+                  }
                 }
               },
             );
@@ -240,21 +263,29 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, _) => buildDropdownField(
+          error: (error, _) => Text('Error loading category types: $error'),
+        ),
+        const SizedBox(height: 16),
+
+        // Category dropdown - only enabled if category type is selected
+        if (selectedCategoryType != null)
+          buildDropdownField(
             context,
             label: 'Category',
             value: profileState.category.isEmpty
                 ? 'Select Category'
                 : profileState.category,
-            items: const ['Basic Worker', 'Advanced Worker'], // Fallback
+            items: filteredCategories.isEmpty
+                ? ['Loading categories...'] // Fallback
+                : filteredCategories.map((cat) => cat['name'] as String).toList(),
             onChanged: (value) {
-              if (value != null) {
+              if (value != null && value != 'Loading categories...') {
                 ref.read(profileProvider.notifier).updateCategory(value);
               }
             },
           ),
-        ),
-        const SizedBox(height: 16),
+        if (selectedCategoryType != null)
+          const SizedBox(height: 16),
 
         // Skills and Capabilities
         buildMultilineFormField(

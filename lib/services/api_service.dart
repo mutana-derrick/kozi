@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://localhost:3000";
+  static const String baseUrl = "http://192.168.0.106:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -267,28 +267,91 @@ class ApiService {
     }
   }
 
-// Get categories from the API
+  // Get categories from the API
   Future<List<Map<String, dynamic>>> getCategories() async {
     try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return [];
+      }
+
       final response = await _dio.get(
         '$baseUrl/category-types-with-categories',
         options: Options(
-          headers: {
-            'Authorization': 'Bearer ${await _storage.read(key: 'auth_token')}'
-          },
+          headers: {'Authorization': 'Bearer $token'},
         ),
       );
 
-      if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(response.data);
-      } else {
-        return [];
+      if (response.statusCode == 200 && response.data != null) {
+        // Parse the response data as List<Map<String, dynamic>>
+        final List<dynamic> rawData = response.data;
+        return rawData.map((item) => Map<String, dynamic>.from(item)).toList();
       }
+
+      return [];
     } catch (e) {
       print('Error fetching categories: $e');
+      // Return an empty list as fallback
       return [];
     }
   }
+
+// Add this method to get a specific category type
+Future<Map<String, dynamic>?> getCategoryType(String typeId) async {
+  try {
+    final token = await _storage.read(key: 'auth_token');
+    if (token == null) {
+      return null;
+    }
+
+    final response = await _dio.get(
+      '$baseUrl/category-types/$typeId',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token'
+        },
+      ),
+    );
+
+    if (response.statusCode == 200 && response.data != null) {
+      return Map<String, dynamic>.from(response.data);
+    }
+    
+    return null;
+  } catch (e) {
+    print('Error fetching category type: $e');
+    return null;
+  }
+}
+
+// Add this method to get categories by type
+Future<List<Map<String, dynamic>>> getCategoriesByType(String typeId) async {
+  try {
+    final token = await _storage.read(key: 'auth_token');
+    if (token == null) {
+      return [];
+    }
+
+    final response = await _dio.get(
+      '$baseUrl/categories/$typeId',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token'
+        },
+      ),
+    );
+
+    if (response.statusCode == 200 && response.data != null) {
+      final List<dynamic> rawData = response.data;
+      return rawData.map((item) => Map<String, dynamic>.from(item)).toList();
+    }
+    
+    return [];
+  } catch (e) {
+    print('Error fetching categories by type: $e');
+    return [];
+  }
+}
 
   // Logout
   Future<void> logout() async {
