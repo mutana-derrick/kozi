@@ -27,7 +27,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
   Timer? _timer;
   int _timeLeft = 180; // 3 minutes in seconds
   String? _errorMessage;
-  final bool _isVerifying = false;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -83,17 +83,36 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
     return isValid;
   }
 
-  void _verifyOtp() {
+  Future<void> _verifyOtp() async {
     // Validate OTP first
     if (!_validateOtp()) {
       return;
     }
     
+    setState(() {
+      _isVerifying = true;
+      _errorMessage = null;
+    });
+    
     String otp = _controllers.map((controller) => controller.text).join();
+    
+    // Simulate verification process with a delay
+    await Future.delayed(const Duration(milliseconds: 800));
+    
+    setState(() {
+      _isVerifying = false;
+    });
+    
+    // Pass the OTP to the callback function
     widget.onVerified(otp);
   }
 
   void _requestNewCode() {
+    // Only allow requesting a new code if timer has expired
+    if (_timeLeft > 0) {
+      return;
+    }
+    
     // Reset timer
     setState(() {
       _timeLeft = 180;
@@ -169,7 +188,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Please enter a verification code sent to your registered email',
+                'Please enter a verification code sent to ${widget.email}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -202,6 +221,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
                               color: _hasError[index] 
                                   ? ValidationColors.errorRed
                                   : Colors.grey[300]!,
+                              width: _hasError[index] ? 2.0 : 1.0,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -222,19 +242,33 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: (value) {
+                          // Clear error state when user types
                           if (_hasError[index]) {
                             setState(() {
                               _hasError[index] = false;
+                              _errorMessage = null;
                             });
                           }
                           
                           if (value.isNotEmpty && index < 5) {
                             _focusNodes[index + 1].requestFocus();
+                          } else if (value.isEmpty && index > 0) {
+                            _focusNodes[index - 1].requestFocus();
                           }
 
-                          // If all fields are filled, auto-verify
+                          // Auto-verify if all fields are filled
                           if (index == 5 && value.isNotEmpty) {
-                            _verifyOtp();
+                            bool allFilled = true;
+                            for (var controller in _controllers) {
+                              if (controller.text.isEmpty) {
+                                allFilled = false;
+                                break;
+                              }
+                            }
+                            
+                            if (allFilled) {
+                              _verifyOtp();
+                            }
                           }
                         },
                       ),
@@ -314,7 +348,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
 
               const SizedBox(height: 8),
 
-              // Request another code - now conditionally clickable
+              // Request another code - conditionally clickable
               GestureDetector(
                 onTap: _timeLeft <= 0 ? _requestNewCode : null,
                 child: Text(
