@@ -1,402 +1,329 @@
+// lib/dashboard/job_seeker/widgets/profile_form_sections/technical_info_section.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
+import 'package:kozi/utils/form_validation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
-import 'package:kozi/authentication/job_seeker/providers/category_provider.dart';
-import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 
-class TechnicalFormSection extends ConsumerStatefulWidget {
-  const TechnicalFormSection({super.key});
+// Provider to track form validation errors
+final technicalInfoErrorsProvider = StateProvider<Map<String, String?>>((ref) => {});
 
+class TechnicalInfoSection extends ConsumerStatefulWidget {
+  const TechnicalInfoSection({super.key});
+  
   @override
-  ConsumerState<TechnicalFormSection> createState() =>
-      _TechnicalFormSectionState();
+  ConsumerState<TechnicalInfoSection> createState() => _TechnicalInfoSectionState();
 }
 
-class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    // Reset selected category type when the form is initialized
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(selectedCategoryTypeProvider.notifier).state = null;
-    });
-  }
-
-  Future<void> _submitProfile() async {
+class _TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
+  final _formKey = GlobalKey<FormState>();
+  bool _isSubmitting = false;
+  
+  // Method to validate all fields before proceeding
+  bool _validateFields() {
+    bool isValid = true;
     final profileState = ref.read(profileProvider);
-    final apiService = ref.read(apiServiceProvider);
-
-    // Basic validation
-    if (profileState.expectedSalary.isEmpty ||
-        profileState.category.isEmpty ||
-        profileState.skills.isEmpty ||
-        profileState.newIdCardPath.isEmpty ||
-        profileState.profileImagePath.isEmpty ||
-        profileState.cvPath.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please fill all required fields';
-      });
+    final errorsMap = <String, String?>{};
+    
+    // Validate expected salary
+    final salaryError = FormValidation.validateDropdown(
+        profileState.expectedSalary, 'expected salary');
+    if (salaryError != null) {
+      errorsMap['expectedSalary'] = salaryError;
+      isValid = false;
+    }
+    
+    // Validate category
+    final categoryError = FormValidation.validateDropdown(
+        profileState.category, 'category');
+    if (categoryError != null) {
+      errorsMap['category'] = categoryError;
+      isValid = false;
+    }
+    
+    // Validate skills
+    final skillsError = FormValidation.validateRequired(
+        profileState.skills, 'Skills');
+    if (skillsError != null) {
+      errorsMap['skills'] = skillsError;
+      isValid = false;
+    }
+    
+    // Validate ID Card
+    final idCardError = FormValidation.validateRequired(
+        profileState.newIdCardPath, 'ID Card');
+    if (idCardError != null) {
+      errorsMap['newIdCardPath'] = idCardError;
+      isValid = false;
+    }
+    
+    // Validate Profile Image
+    final profileImageError = FormValidation.validateRequired(
+        profileState.profileImagePath, 'Profile Image');
+    if (profileImageError != null) {
+      errorsMap['profileImagePath'] = profileImageError;
+      isValid = false;
+    }
+    
+    // Validate CV
+    final cvError = FormValidation.validateRequired(
+        profileState.cvPath, 'CV/Resume');
+    if (cvError != null) {
+      errorsMap['cvPath'] = cvError;
+      isValid = false;
+    }
+    
+    // Update the errors provider
+    ref.read(technicalInfoErrorsProvider.notifier).state = errorsMap;
+    
+    return isValid;
+  }
+  
+  void _goToPrevious() {
+    ref.read(profileProvider.notifier).goToPreviousStep();
+  }
+  
+  Future<void> _submitProfile() async {
+    // Validate all fields first
+    if (!_validateFields()) {
       return;
     }
-
+    
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _isSubmitting = true;
     });
-
-    try {
-      final userId = await apiService.getUserId();
-      if (userId == null) {
-        setState(() {
-          _errorMessage = 'User ID not found. Please log in again.';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Get category ID based on selection
-      String categoryId = '1'; // Default fallback
-      final categoriesAsync = ref.read(categoryTypesProvider);
-      
-      await categoriesAsync.when(
-        data: (categories) {
-          categoryId = getCategoryIdByName(categories, profileState.category);
-        },
-        loading: () {},
-        error: (_, __) {},
-      );
-
-      // Prepare the data
-      final data = {
-        'first_name': profileState.firstName,
-        'last_name': profileState.lastName,
-        'gender': profileState.gender,
-        'fathers_name': profileState.fathersName,
-        'mothers_name': profileState.mothersName,
-        'telephone': profileState.telephone,
-        'province': profileState.province,
-        'district': profileState.district,
-        'sector': profileState.sector,
-        'cell': profileState.cell,
-        'village': profileState.village,
-        'date_of_birth': profileState.dateOfBirth,
-        'disability': profileState.disability,
-        'salary': profileState.expectedSalary,
-        'bio': profileState.skills,
-        'categories_id': categoryId,
-        'image': profileState.profileImagePath,
-        'id': profileState.newIdCardPath,
-        'cv': profileState.cvPath,
-      };
-
-      final result = await apiService.updateUserProfile(userId, data);
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (result['success']) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile updated successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          context.go('/seekerdashboardscreen');
-        }
-      } else {
-        setState(() {
-          _errorMessage = result['message'] ?? 'Failed to update profile';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'An error occurred: $e';
-      });
-    }
-  }
-
-  // Image picker
-  Future<String?> _pickImage(BuildContext context) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 75,
-      );
-
-      if (image != null) {
-        return image.path;
-      }
-      return null;
-    } catch (e) {
+    
+    // Simulate API call with delay
+    await Future.delayed(const Duration(seconds: 2));
+    
+    // Submit profile data (in a real app, this would call an API)
+    final success = await ref.read(profileProvider.notifier).submitProfile();
+    
+    setState(() {
+      _isSubmitting = false;
+    });
+    
+    if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
+        const SnackBar(
+          content: Text('Profile updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
-      return null;
-    }
-  }
-
-  // File picker
-  Future<String?> _pickFile(BuildContext context) async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx'],
-      );
-
-      if (result != null) {
-        return result.files.single.path;
-      }
-      return null;
-    } catch (e) {
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking file: $e')),
+        const SnackBar(
+          content: Text('Failed to update profile. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
       );
-      return null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
-    // Watch category types
-    final categoryTypesAsync = ref.watch(categoryTypesProvider);
-    // Watch selected category type
-    final selectedCategoryType = ref.watch(selectedCategoryTypeProvider);
-    // Watch filtered categories
-    final filteredCategories = ref.watch(filteredCategoriesProvider);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Technical Information',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF333333),
-          ),
-        ),
-        const SizedBox(height: 16),
+    final errors = ref.watch(technicalInfoErrorsProvider);
 
-        // Display error message if any
-        if (_errorMessage != null)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: Text(
-              _errorMessage!,
-              style: TextStyle(color: Colors.red[700]),
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Technical Information',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF333333),
             ),
           ),
+          const SizedBox(height: 16),
 
-        // Expected Salary
-        buildDropdownField(
-          context,
-          label: 'Expected Salary',
-          value: profileState.expectedSalary.isEmpty
-              ? 'Select Expected Salary'
-              : profileState.expectedSalary,
-          items: const [
-            '35000RWF-99000RWF',
-            '100000RWF-149000RWF',
-            '150000RWF-199000RWF',
-            '200000RWF-299000RWF',
-            '300000RWF and above'
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              ref.read(profileProvider.notifier).updateExpectedSalary(value);
-            }
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Category Type dropdown
-        categoryTypesAsync.when(
-          data: (categoryTypes) {
-            final categoryTypeNames = getAllCategoryTypeNames(categoryTypes);
-            
-            return buildDropdownField(
-              context,
-              label: 'Category Type',
-              value: selectedCategoryType != null 
-                  ? categoryTypes.firstWhere(
-                      (type) => type['type_id'].toString() == selectedCategoryType,
-                      orElse: () => {'type_name': 'Select Category Type'},
-                    )['type_name']
-                  : 'Select Category Type',
-              items: categoryTypeNames.isEmpty
-                  ? ['Worker', 'Specialist'] // Fallback
-                  : categoryTypeNames,
-              onChanged: (value) {
-                if (value != null) {
-                  final typeId = getCategoryTypeIdByName(categoryTypes, value);
-                  if (typeId != null) {
-                    ref.read(selectedCategoryTypeProvider.notifier).state = typeId;
-                    // Clear the selected category when type changes
-                    ref.read(profileProvider.notifier).updateCategory('');
-                  }
-                }
-              },
-            );
-          },
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: CircularProgressIndicator(),
-            ),
+          // Expected Salary
+          buildDropdownField(
+            context,
+            label: 'Expected Salary',
+            value: profileState.expectedSalary.isEmpty
+                ? 'Select Expected Salary'
+                : profileState.expectedSalary,
+            items: const [
+              '35000RWF-99000RWF',
+              '100000RWF-149000RWF',
+              '150000RWF-199000RWF',
+              '200000RWF-299000RWF',
+              '300000RWF and above'
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                ref.read(profileProvider.notifier).updateExpectedSalary(value);
+                // Clear error when selected
+                final currentErrors = Map<String, String?>.from(ref.read(technicalInfoErrorsProvider));
+                currentErrors.remove('expectedSalary');
+                ref.read(technicalInfoErrorsProvider.notifier).state = currentErrors;
+              }
+            },
+            errorText: errors['expectedSalary'],
+            isRequired: true,
           ),
-          error: (error, _) => Text('Error loading category types: $error'),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-        // Category dropdown - only enabled if category type is selected
-        if (selectedCategoryType != null)
+          // Category
           buildDropdownField(
             context,
             label: 'Category',
             value: profileState.category.isEmpty
                 ? 'Select Category'
                 : profileState.category,
-            items: filteredCategories.isEmpty
-                ? ['Loading categories...'] // Fallback
-                : filteredCategories.map((cat) => cat['name'] as String).toList(),
+            items: const [
+              'Basic Worker',
+              'Intermediate Worker',
+              'Advanced Worker',
+              'Specialist'
+            ],
             onChanged: (value) {
-              if (value != null && value != 'Loading categories...') {
+              if (value != null) {
                 ref.read(profileProvider.notifier).updateCategory(value);
+                // Clear error when selected
+                final currentErrors = Map<String, String?>.from(ref.read(technicalInfoErrorsProvider));
+                currentErrors.remove('category');
+                ref.read(technicalInfoErrorsProvider.notifier).state = currentErrors;
               }
             },
+            errorText: errors['category'],
+            isRequired: true,
           ),
-        if (selectedCategoryType != null)
           const SizedBox(height: 16),
 
-        // Skills and Capabilities
-        buildMultilineFormField(
-          context,
-          label: 'Elaborate your Skills and Capabilities',
-          value: profileState.skills,
-          onChanged: (value) =>
-              ref.read(profileProvider.notifier).updateSkills(value),
-          maxLines: 5,
-        ),
-        const SizedBox(height: 16),
+          // Skills and Capabilities
+          buildMultilineFormField(
+            context,
+            label: 'Skills and Capabilities',
+            value: profileState.skills,
+            onChanged: (value) {
+              ref.read(profileProvider.notifier).updateSkills(value);
+              // Clear error when typing
+              if (errors['skills'] != null) {
+                final currentErrors = Map<String, String?>.from(ref.read(technicalInfoErrorsProvider));
+                currentErrors.remove('skills');
+                ref.read(technicalInfoErrorsProvider.notifier).state = currentErrors;
+              }
+            },
+            maxLines: 5,
+            errorText: errors['skills'],
+            isRequired: true,
+          ),
+          const SizedBox(height: 16),
 
-        // ID Card Upload
-        buildFileUploadField(
-          context,
-          label: 'ID Card',
-          fileName: profileState.newIdCardPath.isEmpty
-              ? 'No file chosen'
-              : profileState.newIdCardPath.split('/').last,
-          onTap: () async {
-            final filePath = await _pickImage(context);
-            if (filePath != null) {
-              ref.read(profileProvider.notifier).updateNewIdCardPath(filePath);
-            }
-          },
-        ),
-        const SizedBox(height: 16),
+          // File uploads
+          buildFileUploadField(
+            context,
+            label: 'ID Card',
+            fileName: profileState.newIdCardPath.isEmpty
+                ? 'No file chosen'
+                : profileState.newIdCardPath.split('/').last,
+            onTap: () {
+              _pickImage(context, (filePath) {
+                ref.read(profileProvider.notifier).updateNewIdCardPath(filePath);
+                // Clear error when file is selected
+                final currentErrors = Map<String, String?>.from(ref.read(technicalInfoErrorsProvider));
+                currentErrors.remove('newIdCardPath');
+                ref.read(technicalInfoErrorsProvider.notifier).state = currentErrors;
+              });
+            },
+            errorText: errors['newIdCardPath'],
+            isRequired: true,
+          ),
+          const SizedBox(height: 16),
 
-        // Profile Image Upload
-        buildFileUploadField(
-          context,
-          label: 'Profile Image',
-          fileName: profileState.profileImagePath.isEmpty
-              ? 'No file chosen'
-              : profileState.profileImagePath.split('/').last,
-          onTap: () async {
-            final filePath = await _pickImage(context);
-            if (filePath != null) {
-              ref
-                  .read(profileProvider.notifier)
-                  .updateProfileImagePath(filePath);
-            }
-          },
-        ),
-        const SizedBox(height: 16),
+          buildFileUploadField(
+            context,
+            label: 'Profile Image',
+            fileName: profileState.profileImagePath.isEmpty
+                ? 'No file chosen'
+                : profileState.profileImagePath.split('/').last,
+            onTap: () {
+              _pickImage(context, (filePath) {
+                ref
+                    .read(profileProvider.notifier)
+                    .updateProfileImagePath(filePath);
+                // Clear error when file is selected
+                final currentErrors = Map<String, String?>.from(ref.read(technicalInfoErrorsProvider));
+                currentErrors.remove('profileImagePath');
+                ref.read(technicalInfoErrorsProvider.notifier).state = currentErrors;
+              });
+            },
+            errorText: errors['profileImagePath'],
+            isRequired: true,
+          ),
+          const SizedBox(height: 16),
 
-        // CV Upload
-        buildFileUploadField(
-          context,
-          label: 'Upload your CV',
-          fileName: profileState.cvPath.isEmpty
-              ? 'No file chosen'
-              : profileState.cvPath.split('/').last,
-          onTap: () async {
-            final filePath = await _pickFile(context);
-            if (filePath != null) {
-              ref.read(profileProvider.notifier).updateCvPath(filePath);
-            }
-          },
-        ),
-        const SizedBox(height: 24),
-
-        // Navigation buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 150,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+          buildFileUploadField(
+            context,
+            label: 'CV/Resume',
+            fileName: profileState.cvPath.isEmpty
+                ? 'No file chosen'
+                : profileState.cvPath.split('/').last,
+            onTap: () {
+              _pickFile(context, (filePath) {
+                ref.read(profileProvider.notifier).updateCvPath(filePath);
+                // Clear error when file is selected
+                final currentErrors = Map<String, String?>.from(ref.read(technicalInfoErrorsProvider));
+                currentErrors.remove('cvPath');
+                ref.read(technicalInfoErrorsProvider.notifier).state = currentErrors;
+              });
+            },
+            errorText: errors['cvPath'],
+            isRequired: true,
+          ),
+          const SizedBox(height: 24),
+          
+          // Navigation buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 150,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    side: const BorderSide(color: Color(0xFFEA60A7)),
                   ),
-                  side: const BorderSide(color: Color(0xFFEA60A7)),
-                ),
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        ref.read(profileProvider.notifier).goToPreviousStep();
-                      },
-                child: const Text(
-                  'Previous',
-                  style: TextStyle(
-                    color: Color(0xFFEA60A7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                  onPressed: _isSubmitting ? null : _goToPrevious,
+                  child: const Text(
+                    'Previous',
+                    style: TextStyle(
+                      color: Color(0xFFEA60A7),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA60A7),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 150,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEA60A7),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                onPressed: _isLoading ? null : _submitProfile,
-                child: _isLoading
+                  onPressed: _isSubmitting ? null : _submitProfile,
+                  child: _isSubmitting
                     ? const SizedBox(
-                        width: 20,
                         height: 20,
+                        width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
@@ -407,35 +334,83 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  // Reusing your existing widget methods
+  // File pickers
+  Future<void> _pickImage(BuildContext context, Function(String) onPicked) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        onPicked(image.path);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickFile(BuildContext context, Function(String) onPicked) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+      if (result != null) {
+        onPicked(result.files.single.path!);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking file: $e')),
+      );
+    }
+  }
+
   Widget buildMultilineFormField(
     BuildContext context, {
     required String label,
     required String value,
     required Function(String) onChanged,
     int maxLines = 1,
+    String? errorText,
+    bool isRequired = false,
   }) {
     final TextEditingController controller = TextEditingController(text: value);
     controller.selection = TextSelection.fromPosition(
         TextPosition(offset: controller.text.length));
 
+    final hasError = errorText != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color.fromARGB(255, 78, 80, 80),
-            fontWeight: FontWeight.w500,
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color.fromARGB(255, 57, 58, 58),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: ValidationColors.errorRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 2),
@@ -445,6 +420,10 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasError ? ValidationColors.errorRed : Colors.transparent,
+              width: hasError ? 1.0 : 0,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -457,17 +436,29 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
             controller: controller,
             onChanged: onChanged,
             maxLines: maxLines,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              suffixIcon: hasError ? const Icon(Icons.error, color: ValidationColors.errorRed) : null,
             ),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: Color(0xFF5C6BC0),
+              color: hasError ? ValidationColors.errorRed : const Color(0xFF5C6BC0),
               fontWeight: FontWeight.w400,
             ),
           ),
         ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 5),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: ValidationColors.errorRed,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -477,16 +468,34 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
     required String label,
     required String fileName,
     required Function() onTap,
+    String? errorText,
+    bool isRequired = false,
   }) {
+    final hasError = errorText != null;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color.fromARGB(255, 78, 80, 80),
-            fontWeight: FontWeight.w500,
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color.fromARGB(255, 57, 58, 58),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: ValidationColors.errorRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 2),
@@ -494,11 +503,14 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
           children: [
             Expanded(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: hasError ? ValidationColors.errorRed : Colors.transparent,
+                    width: hasError ? 1.0 : 0,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -507,14 +519,22 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
                     ),
                   ],
                 ),
-                child: Text(
-                  fileName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF5C6BC0),
-                    fontWeight: FontWeight.w400,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        fileName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: hasError ? ValidationColors.errorRed : const Color(0xFF5C6BC0),
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (hasError)
+                      const Icon(Icons.error, color: ValidationColors.errorRed, size: 20),
+                  ],
                 ),
               ),
             ),
@@ -522,8 +542,7 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5C6BC0),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -541,6 +560,17 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
             ),
           ],
         ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 5),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: ValidationColors.errorRed,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -551,16 +581,34 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
     required String value,
     required List<String> items,
     required Function(String?) onChanged,
+    String? errorText,
+    bool isRequired = false,
   }) {
+    final hasError = errorText != null;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color.fromARGB(255, 78, 80, 80),
-            fontWeight: FontWeight.w500,
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color.fromARGB(255, 78, 80, 80),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: ValidationColors.errorRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 2),
@@ -570,6 +618,10 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasError ? ValidationColors.errorRed : Colors.transparent,
+              width: hasError ? 1.0 : 0,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -581,13 +633,21 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: items.contains(value) ? value : null,
-              hint: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF5C6BC0),
-                  fontWeight: FontWeight.w400,
-                ),
+              hint: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: hasError ? ValidationColors.errorRed : const Color(0xFF5C6BC0),
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  if (hasError)
+                    const Icon(Icons.error, color: ValidationColors.errorRed, size: 20),
+                ],
               ),
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down,
@@ -614,7 +674,18 @@ class _TechnicalFormSectionState extends ConsumerState<TechnicalFormSection> {
             ),
           ),
         ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 5),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: ValidationColors.errorRed,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }
-}
+  }

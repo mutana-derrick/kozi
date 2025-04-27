@@ -11,7 +11,7 @@ class AuthGuard extends ConsumerWidget {
   const AuthGuard({
     super.key,
     required this.child,
-    this.redirectRoute = '/seekerlogin',
+    this.redirectRoute = '/home',
   });
 
   @override
@@ -24,7 +24,7 @@ class AuthGuard extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.go(redirectRoute);
       });
-      
+
       // Show a loading indicator while redirecting
       return const Scaffold(
         body: Center(

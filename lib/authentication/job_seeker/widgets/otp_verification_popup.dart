@@ -1,6 +1,8 @@
+// lib/authentication/job_seeker/widgets/otp_verification_popup.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kozi/utils/form_validation.dart';
 
 class OtpVerificationPopup extends StatefulWidget {
   final String email;
@@ -20,9 +22,12 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final List<bool> _hasError = List.generate(6, (_) => false);
 
   Timer? _timer;
   int _timeLeft = 180; // 3 minutes in seconds
+  String? _errorMessage;
+  final bool _isVerifying = false;
 
   @override
   void initState() {
@@ -48,23 +53,60 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
     return "$minutes : ${seconds.toString().padLeft(2, '0')} minutes";
   }
 
-  void _verifyOtp() {
-    String otp = _controllers.map((controller) => controller.text).join();
-    if (otp.length == 6) {
-      widget.onVerified(otp);
+  bool _validateOtp() {
+    bool isValid = true;
+    
+    // Check if all digits are filled
+    for (int i = 0; i < 6; i++) {
+      if (_controllers[i].text.isEmpty) {
+        setState(() {
+          _hasError[i] = true;
+        });
+        isValid = false;
+      } else {
+        setState(() {
+          _hasError[i] = false;
+        });
+      }
     }
+    
+    if (!isValid) {
+      setState(() {
+        _errorMessage = 'Please enter the complete 6-digit code';
+      });
+    } else {
+      setState(() {
+        _errorMessage = null;
+      });
+    }
+    
+    return isValid;
+  }
+
+  void _verifyOtp() {
+    // Validate OTP first
+    if (!_validateOtp()) {
+      return;
+    }
+    
+    String otp = _controllers.map((controller) => controller.text).join();
+    widget.onVerified(otp);
   }
 
   void _requestNewCode() {
     // Reset timer
     setState(() {
       _timeLeft = 180;
+      _errorMessage = null;
     });
     _startTimer();
 
-    // Clear all fields
-    for (var controller in _controllers) {
-      controller.clear();
+    // Clear all fields and reset errors
+    for (int i = 0; i < 6; i++) {
+      _controllers[i].clear();
+      setState(() {
+        _hasError[i] = false;
+      });
     }
 
     // Set focus to first field
@@ -156,18 +198,36 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
                           counterText: '',
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
+                            borderSide: BorderSide(
+                              color: _hasError[index] 
+                                  ? ValidationColors.errorRed
+                                  : Colors.grey[300]!,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFEA60A7), width: 2),
+                            borderSide: BorderSide(
+                              color: _hasError[index]
+                                  ? ValidationColors.errorRed
+                                  : const Color(0xFFEA60A7),
+                              width: 2,
+                            ),
                           ),
+                          filled: true,
+                          fillColor: _hasError[index]
+                              ? ValidationColors.errorRedLight
+                              : Colors.white,
                         ),
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: (value) {
+                          if (_hasError[index]) {
+                            setState(() {
+                              _hasError[index] = false;
+                            });
+                          }
+                          
                           if (value.isNotEmpty && index < 5) {
                             _focusNodes[index + 1].requestFocus();
                           }
@@ -183,13 +243,36 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
                 );
               }),
 
+              // Error message if any
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: ValidationColors.errorRedLight,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: ValidationColors.errorRedBorder,
+                      ),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: ValidationColors.errorRed,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+
               const SizedBox(height: 24),
 
               // Confirm button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _verifyOtp,
+                  onPressed: _isVerifying ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEA60A7),
                     foregroundColor: Colors.white,
@@ -197,14 +280,24 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    disabledBackgroundColor: Colors.grey.shade300,
                   ),
-                  child: const Text(
-                    'Confirm',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                  child: _isVerifying
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                      'Confirm',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
                 ),
               ),
 

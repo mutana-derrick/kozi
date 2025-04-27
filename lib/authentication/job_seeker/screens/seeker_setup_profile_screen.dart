@@ -268,9 +268,9 @@ class _ProfileScreenContentState
       case 0:
         return const PersonalInfoFormSection();
       case 1:
-        return const AddressFormSection();
+        return const AddressInfoSection();
       case 2:
-        return const TechnicalFormSection();
+        return const TechnicalInfoSection();
       default:
         return const PersonalInfoFormSection();
     }
