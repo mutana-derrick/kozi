@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
-import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
-import 'dart:math' as math;
-
-import 'package:kozi/utils/text_utils.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/job_card_widget.dart'; // Import the new widget
+import 'package:kozi/dashboard/job_seeker/models/job.dart';
 
 // Define a provider to track favorite jobs
 final favoritesProvider = StateProvider<Set<String>>((ref) => {});
@@ -95,7 +93,6 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
     // Read providers for UI state
     final filteredJobs = ref.watch(filteredJobsProvider);
     final favorites = ref.watch(favoritesProvider);
-    // ignore: unused_local_variable
     final isLoading = ref.watch(jobApplyingProvider);
     final errorMessage = ref.watch(jobApplyErrorProvider);
 
@@ -261,8 +258,14 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: filteredJobs.length,
-                          itemBuilder: (context, index) =>
-                              _buildJobCard(context, filteredJobs[index]),
+                          itemBuilder: (context, index) => JobCardWidget(
+                            job: filteredJobs[index],
+                            isLoading: isLoading,
+                            onApplyPressed: () {
+                              // First view the job details
+                              context.push('/job/${filteredJobs[index].id}');
+                            },
+                          ),
                         ),
                 ),
               ),
@@ -484,242 +487,5 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
       ref.read(jobApplyingProvider.notifier).state = false;
       ref.read(jobApplyErrorProvider.notifier).state = 'Error: $e';
     }
-  }
-
-  Widget _buildJobCard(BuildContext context, Job job) {
-    // Get favorite status from provider
-    final isFavorite = ref.watch(favoritesProvider).contains(job.id);
-    final isLoading = ref.watch(jobApplyingProvider);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: job.companyLogoColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                job.companyLogo,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        job.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Interactive heart icon
-                    IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? Colors.red : Colors.grey,
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        final favoritesNotifier =
-                            ref.read(favoritesProvider.notifier);
-                        final favorites = ref.read(favoritesProvider);
-
-                        if (isFavorite) {
-                          // Remove from favorites
-                          favoritesNotifier.state = {...favorites}
-                            ..remove(job.id);
-                        } else {
-                          // Add to favorites
-                          favoritesNotifier.state = {...favorites, job.id};
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  TextUtils.cleanHtmlText(job.description),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (job.location != null) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        job.location!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // First row with rating/views or deadline
-                    Row(
-                      children: [
-                        // Job deadline if available
-                        if (job.deadlineDate != null) ...[
-                          const Icon(
-                            Icons.timer,
-                            size: 14,
-                            color: Colors.redAccent,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              'Due: ${_formatDeadlineDate(job.deadlineDate!)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ] else ...[
-                          Text(
-                            '${job.rating}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '(${job.views} views)',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-
-                    // Second row with the apply button positioned at the right
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        ElevatedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  // First view the job details
-                                  context.push('/job/${job.id}');
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEA60A7),
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(120, 30),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
-                                  ),
-                                )
-                              : const Text(
-                                  'Apply for this job',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _formatDeadlineDate(String dateString) {
-  try {
-    // Check if the date contains 'T' which suggests ISO format
-    if (dateString.contains('T')) {
-      // Split by T to get date part
-      final datePart = dateString.split('T')[0];
-      // Parse the date part (should be in YYYY-MM-DD format)
-      final parts = datePart.split('-');
-      if (parts.length == 3) {
-        // Format as YYYY-MM-DD
-        return '${parts[0]}-${parts[1]}-${parts[2]}';
-      }
-    }
-
-    // If we couldn't parse it, just return a cleaner version
-    return dateString
-        .replaceAll('T', ' ')
-        .substring(0, math.min(10, dateString.length));
-  } catch (e) {
-    // If any parsing fails, return at most first 10 chars
-    if (dateString.length > 10) {
-      return dateString.substring(0, 10);
-    }
-    return dateString;
   }
 }

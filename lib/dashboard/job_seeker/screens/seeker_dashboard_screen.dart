@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/providers/dashboard_providers.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
+import 'package:kozi/dashboard/job_seeker/widgets/job_card_widget.dart'; // Import the new widget
 import 'package:kozi/shared/advertisement_carousel.dart';
-import 'package:kozi/utils/text_utils.dart';
 
 class SeekerDashboardScreen extends ConsumerWidget {
   const SeekerDashboardScreen({super.key});
@@ -154,14 +153,19 @@ class SeekerDashboardScreen extends ConsumerWidget {
 
                                 return Column(
                                   children: displayJobs
-                                      .map((job) => _buildJobCard(context, job))
+                                      .map((job) => JobCardWidget(
+                                            job: job,
+                                            onApplyPressed: () {
+                                              context.push('/job/${job.id}');
+                                            },
+                                          ))
                                       .toList(),
                                 );
                               },
                               loading: () => Center(
                                 child: Column(
-                                  children: List.generate(
-                                      2, (index) => _buildJobCardSkeleton()),
+                                  children: List.generate(2,
+                                      (index) => const JobCardSkeletonWidget()),
                                 ),
                               ),
                               error: (_, __) => const Center(
@@ -270,6 +274,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Profile image
           ClipRRect(
@@ -463,221 +468,6 @@ class SeekerDashboardScreen extends ConsumerWidget {
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  Widget _buildJobCard(BuildContext context, Job job) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: job.companyLogoColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                job.companyLogo,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        job.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.favorite,
-                      color: Colors.red,
-                      size: 20,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  TextUtils.cleanHtmlText(job.description),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (job.location != null) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        job.location!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      '${job.rating}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '(${job.views} views)',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const Spacer(),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to job details screen
-                        context.push('/job/${job.id}');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEA60A7),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(120, 30),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                      child: const Text(
-                        'Apply for this job',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJobCardSkeleton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 150,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: 120,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
