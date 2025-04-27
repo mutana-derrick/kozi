@@ -212,7 +212,7 @@ class StatusScreen extends ConsumerWidget {
               Text(
                 description,
                 style: const TextStyle(
-                  color: Colors.greenAccent,
+                  color: Colors.black54,
                   fontSize: 14,
                 ),
               ),

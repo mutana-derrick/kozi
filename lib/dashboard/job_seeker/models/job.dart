@@ -1,5 +1,6 @@
 // models/job.dart
 import 'package:flutter/material.dart';
+import 'package:kozi/utils/text_utils.dart';
 
 class Job {
   final String id;
@@ -18,7 +19,7 @@ class Job {
   final String? deadlineDate; // Added deadline date
 
   Job({
-    String? id, 
+    String? id,
     required this.title,
     required this.company,
     required this.description,
@@ -38,34 +39,37 @@ class Job {
   static String _generateId(String company, String title) {
     return '${company.toLowerCase().replaceAll(' ', '-')}-${title.toLowerCase().replaceAll(' ', '-')}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
   }
-  
+
   // Factory constructor to create a Job from API data
   factory Job.fromApi(Map<String, dynamic> data) {
-    return Job(
-      id: data['job_id']?.toString() ?? '',
-      title: data['job_title'] ?? 'Untitled Job',
-      company: data['company'] ?? 'Unknown Company',
-      description: data['job_description'] ?? 'No description available',
-      fullDescription: data['job_description'],
-      companyDescription: 'Company specializing in their field', // Default since API doesn't provide this
-      companyLogo: (data['company'] ?? 'C').substring(0, 1).toUpperCase(),
-      companyLogoColor: _getColorForCompany(data['company'] ?? ''),
-      rating: 4.5, // Default since API doesn't provide rating
-      views: 100, // Default since API doesn't provide views
-      location: data['location'],
-      publishedDate: data['published_date'],
-      deadlineDate: data['deadline_date'],
-    );
-  }
-  
+  return Job(
+    id: data['job_id']?.toString() ?? '',
+    title: data['job_title'] ?? 'Untitled Job',
+    company: data['company'] ?? 'Unknown Company',
+    // Clean description at the model level (can also be done in UI)
+    description: TextUtils.cleanHtmlText(data['job_description']),
+    fullDescription: TextUtils.cleanHtmlText(data['job_description']),
+    companyDescription: 'Company specializing in their field',
+    companyLogo: (data['company'] ?? 'C').isNotEmpty 
+        ? (data['company'] ?? 'C')[0].toUpperCase()
+        : 'C',
+    companyLogoColor: _getColorForCompany(data['company'] ?? ''),
+    rating: 4.5,
+    views: 100,
+    location: data['location'],
+    publishedDate: data['published_date'],
+    deadlineDate: data['deadline_date'],
+  );
+}
+
   // Helper method to generate color based on company name
   static Color _getColorForCompany(String company) {
     if (company.isEmpty) return Colors.blueGrey;
-    
+
     // Generate a color based on the first character of the company name
     final int charCode = company.toLowerCase().codeUnitAt(0);
     final hue = (charCode % 360).toDouble();
-    
+
     return HSLColor.fromAHSL(1.0, hue, 0.6, 0.8).toColor();
   }
 }

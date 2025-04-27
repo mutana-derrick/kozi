@@ -7,9 +7,9 @@ import '../models/job.dart';
 // Provider for fetching jobs from the API
 final apiJobsProvider = FutureProvider.autoDispose<List<Job>>((ref) async {
   final apiService = ref.read(apiServiceProvider);
-  
   try {
     final jobsData = await apiService.getJobs();
+    print('API Jobs Response: $jobsData'); // Add this line
     return jobsData.map((jobData) => Job.fromApi(jobData)).toList();
   } catch (e) {
     print('Error fetching jobs: $e');
@@ -23,7 +23,7 @@ final favoriteJobsProvider = StateProvider<Set<String>>((ref) => {});
 // Provider for the list of jobs (combining API data with local data)
 final jobsProvider = Provider<List<Job>>((ref) {
   final apiJobsAsync = ref.watch(apiJobsProvider);
-  
+
   return apiJobsAsync.when(
     data: (jobs) => jobs,
     loading: () => _getMockJobs(), // Provide mock data while loading
@@ -32,9 +32,10 @@ final jobsProvider = Provider<List<Job>>((ref) {
 });
 
 // Provider for a single job by ID
-final jobDetailsProvider = Provider.family<AsyncValue<Job>, String>((ref, jobId) {
+final jobDetailsProvider =
+    Provider.family<AsyncValue<Job>, String>((ref, jobId) {
   final jobs = ref.watch(jobsProvider);
-  
+
   try {
     final job = jobs.firstWhere((job) => job.id == jobId);
     return AsyncValue.data(job);
@@ -67,8 +68,10 @@ List<Job> _getMockJobs() {
       companyLogoColor: Colors.amber,
       rating: 2.8,
       views: 2821,
-      companyDescription: "Yellow's purpose is to make life better for customers living in Africa.",
-      fullDescription: "The successful candidate will be responsible for leading and managing operations in the region.",
+      companyDescription:
+          "Yellow's purpose is to make life better for customers living in Africa.",
+      fullDescription:
+          "The successful candidate will be responsible for leading and managing operations in the region.",
     ),
     Job(
       id: '002',
@@ -79,8 +82,10 @@ List<Job> _getMockJobs() {
       companyLogoColor: Colors.blue.shade200,
       rating: 2.8,
       views: 2821,
-      companyDescription: "Sanson Group is an IT Consulting firm specializing in digital transformation solutions.",
-      fullDescription: "We are looking for a Marketing Manager to lead our marketing initiatives.",
+      companyDescription:
+          "Sanson Group is an IT Consulting firm specializing in digital transformation solutions.",
+      fullDescription:
+          "We are looking for a Marketing Manager to lead our marketing initiatives.",
     ),
   ];
 }

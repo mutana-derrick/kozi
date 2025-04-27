@@ -7,6 +7,7 @@ import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
 import 'package:kozi/shared/advertisement_carousel.dart';
+import 'package:kozi/utils/text_utils.dart';
 
 class SeekerDashboardScreen extends ConsumerWidget {
   const SeekerDashboardScreen({super.key});
@@ -528,12 +529,12 @@ class SeekerDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  job.description,
+                  TextUtils.cleanHtmlText(job.description),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
                   ),
-                  maxLines: 1,
+                  maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (job.location != null) ...[
@@ -784,5 +785,5 @@ class SeekerDashboardScreen extends ConsumerWidget {
 
   // Add a constant for the base API URL
   static const String baseApiUrl =
-      'http://192.168.0.106:3000'; // Change this to your actual API base URL
+      'http://192.168.1.83:3000'; // Change this to your actual API base URL
 }

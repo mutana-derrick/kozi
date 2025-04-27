@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.0.106:3000";
+  static const String baseUrl = "http://192.168.1.83:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -393,7 +393,7 @@ class ApiService {
       }
 
       final response = await _dio.get(
-        '$baseUrl/admin/select_jobs',
+        '$baseUrl/admin/select_jobss',
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),
@@ -457,12 +457,155 @@ class ApiService {
           'message': response.data['message'] ?? 'Failed to apply for job',
         };
       }
+    } on DioException catch (e) {
+      // Handle Dio-specific errors
+      if (e.response?.statusCode == 409) {
+        return {
+          'success': false,
+          'message': 'You have already applied for this job'
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Network error: ${e.message}',
+      };
     } catch (e) {
-      print('Error applying for job: $e');
       return {
         'success': false,
         'message': 'An error occurred: $e',
       };
+    }
+  }
+
+// Additional method to submit detailed job application
+  Future<Map<String, dynamic>> submitJobApplication(
+      String jobId, Map<String, dynamic> applicationData) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final userId = await getUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'User ID not found'};
+      }
+
+      // Add userId to application data
+      applicationData['user_id'] = userId;
+      applicationData['job_id'] = jobId;
+
+      // Create form data for file uploads if needed
+      final formData = FormData.fromMap(applicationData);
+
+      // If there's a CV file to upload
+      if (applicationData['cv_file'] != null) {
+        formData.files.add(MapEntry(
+          'cv_file',
+          await MultipartFile.fromFile(
+            applicationData['cv_file'],
+            filename: applicationData['cv_file'].split('/').last,
+          ),
+        ));
+      }
+
+      final response = await _dio.post(
+        '$baseUrl/seeker/submit_application',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Application submitted successfully',
+          'data': response.data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to submit application',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
+
+// Method to get user's applied jobs
+  Future<List<Map<String, dynamic>>> getAppliedJobs() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return [];
+      }
+
+      final userId = await getUserId();
+      if (userId == null) {
+        return [];
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/seeker/applied_jobs/$userId',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> appliedJobs = response.data;
+        return appliedJobs
+            .map((job) => Map<String, dynamic>.from(job))
+            .toList();
+      }
+
+      return [];
+    } catch (e) {
+      print('Error fetching applied jobs: $e');
+      return [];
+    }
+  }
+
+// Method to check if user has applied for a specific job
+  Future<bool> hasAppliedForJob(String jobId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return false;
+      }
+
+      final userId = await getUserId();
+      if (userId == null) {
+        return false;
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/seeker/check_application',
+        queryParameters: {
+          'user_id': userId,
+          'job_id': jobId,
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data['applied'] == true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Error checking job application status: $e');
+      return false;
     }
   }
 

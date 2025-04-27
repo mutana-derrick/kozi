@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-// import 'dart:io';
-// import 'package:file_picker/file_picker.dart';
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 
 // Step provider to track current application step
 final applicationStepProvider = StateProvider<int>((ref) => 1);
@@ -24,6 +23,11 @@ class EducationEntry {
   String field = '';
 }
 
+// Provider for application loading state
+final applicationSubmitLoadingProvider = StateProvider<bool>((ref) => false);
+// Provider for application error message
+final applicationErrorMessageProvider = StateProvider<String?>((ref) => null);
+
 class JobApplicationFormScreen extends ConsumerWidget {
   final String jobId;
 
@@ -32,6 +36,9 @@ class JobApplicationFormScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentStep = ref.watch(applicationStepProvider);
+    // ignore: unused_local_variable
+    final isSubmitting = ref.watch(applicationSubmitLoadingProvider);
+    final errorMessage = ref.watch(applicationErrorMessageProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -106,6 +113,30 @@ class JobApplicationFormScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+
+              // Error message if any
+              if (errorMessage != null)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    border: Border.all(color: Colors.red.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          errorMessage,
+                          style: TextStyle(color: Colors.red.shade700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Form content based on current step
               Expanded(
@@ -282,6 +313,7 @@ class JobApplicationFormScreen extends ConsumerWidget {
   Widget _buildExperienceForm(BuildContext context, WidgetRef ref) {
     final workHistoryEntries = ref.watch(workHistoryEntriesProvider);
     final educationEntries = ref.watch(educationEntriesProvider);
+    final isSubmitting = ref.watch(applicationSubmitLoadingProvider);
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -553,13 +585,19 @@ class JobApplicationFormScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             // CV upload button
             InkWell(
-              // onTap: () async {
-              //   final result = await FilePicker.platform.pickFiles(
-              //     type: FileType.custom,
-              //     allowedExtensions: ['pdf'],
-              //   );
-              //   // Handle file selection
-              // },
+              onTap: () async {
+                // Add CV upload functionality here using file_picker
+                /* Example:
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['pdf'],
+                );
+                if (result != null) {
+                  String filePath = result.files.single.path!;
+                  // Store the file path in a provider
+                }
+                */
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -586,10 +624,9 @@ class JobApplicationFormScreen extends ConsumerWidget {
             // Submit button
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // Submit application logic
-                  _showApplicationSubmittedDialog(context);
-                },
+                onPressed: isSubmitting
+                    ? null
+                    : () => _submitApplication(context, ref),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEA60A7),
                   foregroundColor: Colors.white,
@@ -597,11 +634,22 @@ class JobApplicationFormScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  disabledBackgroundColor: Colors.pink[200],
                 ),
-                child: const Text(
-                  'Submit Application',
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Submit Application',
+                        style: TextStyle(fontSize: 16),
+                      ),
               ),
             ),
           ],
@@ -610,9 +658,48 @@ class JobApplicationFormScreen extends ConsumerWidget {
     );
   }
 
+  // New method to handle application submission with API integration
+  Future<void> _submitApplication(BuildContext context, WidgetRef ref) async {
+    // Clear any previous error messages
+    ref.read(applicationErrorMessageProvider.notifier).state = null;
+
+    // Set loading state to true
+    ref.read(applicationSubmitLoadingProvider.notifier).state = true;
+
+    try {
+      // Get API service from provider
+      final apiService = ref.read(apiServiceProvider);
+
+      // Call the API to apply for the job
+      final result = await apiService.applyForJob(jobId);
+
+      // Set loading state to false
+      ref.read(applicationSubmitLoadingProvider.notifier).state = false;
+
+      if (result['success']) {
+        // Show success dialog
+        if (context.mounted) {
+          _showApplicationSubmittedDialog(context);
+        }
+      } else {
+        // Show error message
+        ref.read(applicationErrorMessageProvider.notifier).state =
+            result['message'] ?? 'Failed to submit application';
+      }
+    } catch (e) {
+      // Set loading state to false
+      ref.read(applicationSubmitLoadingProvider.notifier).state = false;
+
+      // Show error message
+      ref.read(applicationErrorMessageProvider.notifier).state =
+          'An error occurred: $e';
+    }
+  }
+
   void _showApplicationSubmittedDialog(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
