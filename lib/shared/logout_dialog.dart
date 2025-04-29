@@ -5,22 +5,26 @@ import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 
 class CustomLogoutDialog extends ConsumerWidget {
   final VoidCallback? onCancel;
+  final Function(BuildContext)? onLogoutComplete;
 
   const CustomLogoutDialog({
     super.key,
     this.onCancel,
+    this.onLogoutComplete,
   });
 
   /// Shows the logout confirmation dialog
   static Future<bool?> show(
     BuildContext context, {
     VoidCallback? onCancel,
+    Function(BuildContext)? onLogoutComplete,
   }) {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => CustomLogoutDialog(
+      builder: (BuildContext dialogContext) => CustomLogoutDialog(
         onCancel: onCancel,
+        onLogoutComplete: onLogoutComplete,
       ),
     );
   }
@@ -84,15 +88,12 @@ class CustomLogoutDialog extends ConsumerWidget {
               ),
               const SizedBox(width: 16),
               TextButton(
-                onPressed: () async {
-                  // Perform logout using auth provider
-                  await ref.read(authProvider.notifier).logout();
+                onPressed: () {
+                  // First close the dialog
+                  Navigator.of(context).pop(true);
                   
-                  if (context.mounted) {
-                    Navigator.of(context).pop(true);
-                    // Navigate to login screen
-                    context.go('/seekerlogin');
-                  }
+                  // Then perform logout
+                  _handleLogout(context, ref);
                 },
                 child: const Text(
                   'Ok',
@@ -108,5 +109,30 @@ class CustomLogoutDialog extends ConsumerWidget {
         ],
       ),
     );
+  }
+  
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    try {
+      // Perform logout using auth provider
+      await ref.read(authProvider.notifier).logout();
+      
+      // Navigate to login screen
+      if (onLogoutComplete != null) {
+        // ignore: use_build_context_synchronously
+        onLogoutComplete!(context);
+      } else {
+        // Default navigation if no custom handler is provided
+        if (context.mounted) {
+          context.go('/home');
+        }
+      }
+    } catch (e) {
+      // Handle any errors that might occur during logout
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error during logout: $e')),
+        );
+      }
+    }
   }
 }

@@ -203,64 +203,111 @@ class _JobApplicationFormScreenState extends ConsumerState<JobApplicationFormScr
     ref.read(applicationStepProvider.notifier).state = step;
   }
   
-  Future<void> _submitApplication() async {
-    // Validate the current step (experience step)
-    if (!_validateExperience()) {
+ Future<void> _submitApplication() async {
+  // Validate the current step (experience step)
+  if (!_validateExperience()) {
+    return;
+  }
+  
+  // Set loading state
+  ref.read(applicationSubmitLoadingProvider.notifier).state = true;
+  // Clear error message
+  ref.read(applicationErrorMessageProvider.notifier).state = null;
+  
+  try {
+    // Get API service from provider
+    final apiService = ref.read(apiServiceProvider);
+    
+    // First, apply for the job using the applyForJob method
+    final applyResult = await apiService.applyForJob(widget.jobId);
+    
+    if (!applyResult['success']) {
+      // If the job application failed, show error
+      ref.read(applicationErrorMessageProvider.notifier).state = 
+          applyResult['message'] ?? 'Failed to apply for job';
+      ref.read(applicationSubmitLoadingProvider.notifier).state = false;
       return;
     }
     
-    // Set loading state
-    ref.read(applicationSubmitLoadingProvider.notifier).state = true;
-    // Clear error message
-    ref.read(applicationErrorMessageProvider.notifier).state = null;
+    // Now prepare application form data
+    final applicationData = {
+      'job_id': widget.jobId,
+      'full_name': _nameController.text,
+      'email': _emailController.text,
+      'phone': _phoneController.text,
+      'gender': _selectedGender,
+      'work_history': ref.read(workHistoryEntriesProvider).map((entry) => {
+        'company': entry.companyName,
+        'title': entry.titleAndExperience,
+      }).toList(),
+      'education': ref.read(educationEntriesProvider).map((entry) => {
+        'school': entry.schoolNameAndLevel,
+        'field': entry.field,
+      }).toList(),
+      'cv_file': ref.read(cvFilePathProvider),
+    };
     
-    try {
-      // Get API service from provider
-      final apiService = ref.read(apiServiceProvider);
-      
-      // Prepare application data
-      final applicationData = {
-        'job_id': widget.jobId,
-        'full_name': _nameController.text,
-        'email': _emailController.text,
-        'phone': _phoneController.text,
-        'gender': _selectedGender,
-        'work_history': ref.read(workHistoryEntriesProvider).map((entry) => {
-          'company': entry.companyName,
-          'title': entry.titleAndExperience,
-        }).toList(),
-        'education': ref.read(educationEntriesProvider).map((entry) => {
-          'school': entry.schoolNameAndLevel,
-          'field': entry.field,
-        }).toList(),
-        'cv_file': ref.read(cvFilePathProvider),
-      };
-      
-      // Call the API to submit the application
-      final result = await apiService.submitJobApplication(widget.jobId, applicationData);
-      
-      // Reset loading state
-      ref.read(applicationSubmitLoadingProvider.notifier).state = false;
-      
-      if (result['success']) {
-        // Show success dialog
+    // Submit the detailed application data
+    final result = await apiService.submitJobApplication(widget.jobId, applicationData);
+    
+    // Reset loading state
+    ref.read(applicationSubmitLoadingProvider.notifier).state = false;
+    
+    if (result['success']) {
+      // Show success dialog
+      if (mounted) {
+        _showApplicationSubmittedDialog();
+      }
+    } else {
+      // If form submission failed but the application was created,
+      // still show success but with a warning about incomplete details
+      if (applyResult['success']) {
         if (mounted) {
-          _showApplicationSubmittedDialog();
+          _showPartialSuccessDialog();
         }
       } else {
         // Show error message
         ref.read(applicationErrorMessageProvider.notifier).state = 
-            result['message'] ?? 'Failed to submit application';
+            result['message'] ?? 'Failed to submit application details';
       }
-    } catch (e) {
-      // Reset loading state
-      ref.read(applicationSubmitLoadingProvider.notifier).state = false;
-      
-      // Show error message
-      ref.read(applicationErrorMessageProvider.notifier).state = 
-          'An error occurred: $e';
     }
+  } catch (e) {
+    // Reset loading state
+    ref.read(applicationSubmitLoadingProvider.notifier).state = false;
+    
+    // Show error message
+    ref.read(applicationErrorMessageProvider.notifier).state = 
+        'An error occurred: $e';
   }
+}
+
+void _showPartialSuccessDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text("Application Submitted"),
+        content: const Text(
+            "Your application has been successfully submitted. Your application is still being considered."
+        ),
+        actions: [
+          TextButton(
+            child: const Text("OK"),
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Navigate back to home or jobs list
+              context.go('/jobs');
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   void _showApplicationSubmittedDialog() {
     showDialog(

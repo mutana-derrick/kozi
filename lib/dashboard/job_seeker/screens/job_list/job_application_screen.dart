@@ -1,3 +1,5 @@
+// Inside lib/dashboard/job_seeker/screens/job_list/job_application_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +11,8 @@ import 'package:kozi/utils/text_utils.dart';
 import 'package:share_plus/share_plus.dart';
 
 // Provider for favorite status of the current job
-final currentJobFavoriteStatusProvider = StateProvider.family<bool, String>((ref, jobId) {
+final currentJobFavoriteStatusProvider =
+    StateProvider.family<bool, String>((ref, jobId) {
   final favorites = ref.watch(favoritesProvider);
   return favorites.contains(jobId);
 });
@@ -30,10 +33,11 @@ class JobApplicationScreen extends ConsumerWidget {
     final jobAsync = ref.watch(jobDetailsProvider(jobId));
     final isLoading = ref.watch(jobApplyLoadingProvider);
     final errorMessage = ref.watch(jobApplyErrorMessageProvider);
-    
+
     return Scaffold(
       body: jobAsync.when(
-        data: (job) => _buildJobDetails(context, ref, job, isLoading, errorMessage),
+        data: (job) =>
+            _buildJobDetails(context, ref, job, isLoading, errorMessage),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
       ),
@@ -44,7 +48,7 @@ class JobApplicationScreen extends ConsumerWidget {
   void _shareJob(Job job) {
     final String jobTitle = job.title;
     final String companyName = job.company;
-    
+
     // Create a share text with job details
     final String shareText = '''
 Check out this job opportunity!
@@ -61,46 +65,48 @@ Apply now on Kozi!
   }
 
   // Method to handle applying for a job
-  Future<void> _applyForJob(BuildContext context, WidgetRef ref, String jobId) async {
+  Future<void> _applyForJob(
+      BuildContext context, WidgetRef ref, String jobId) async {
     // Clear any previous error messages
     ref.read(jobApplyErrorMessageProvider.notifier).state = null;
-    
+
     // Set loading state to true
     ref.read(jobApplyLoadingProvider.notifier).state = true;
-    
+
     try {
       // Get API service from provider
       final apiService = ref.read(apiServiceProvider);
-      
+
       // Call the API to apply for the job
       final result = await apiService.applyForJob(jobId);
-      
+
       // Set loading state to false
       ref.read(jobApplyLoadingProvider.notifier).state = false;
-      
+
       if (result['success']) {
         // Navigate to application form for additional details
         if (context.mounted) {
-          context.push('/apply/${jobId}/form');
+          context.push('/apply/$jobId/form');
         }
       } else {
         // Show error message
-        ref.read(jobApplyErrorMessageProvider.notifier).state = 
+        ref.read(jobApplyErrorMessageProvider.notifier).state =
             result['message'] ?? 'Failed to apply for job';
       }
     } catch (e) {
       // Set loading state to false
       ref.read(jobApplyLoadingProvider.notifier).state = false;
-      
+
       // Show error message
-      ref.read(jobApplyErrorMessageProvider.notifier).state = 
+      ref.read(jobApplyErrorMessageProvider.notifier).state =
           'An error occurred: $e';
     }
   }
 
-  Widget _buildJobDetails(BuildContext context, WidgetRef ref, Job job, bool isLoading, String? errorMessage) {
+  Widget _buildJobDetails(BuildContext context, WidgetRef ref, Job job,
+      bool isLoading, String? errorMessage) {
     final isFavorite = ref.watch(currentJobFavoriteStatusProvider(job.id));
-    
+
     return Stack(
       children: [
         // Background gradient
@@ -149,7 +155,8 @@ Apply now on Kozi!
               // Error message if any
               if (errorMessage != null)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
@@ -165,6 +172,14 @@ Apply now on Kozi!
                           errorMessage,
                           style: TextStyle(color: Colors.red.shade700),
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () {
+                          ref
+                              .read(jobApplyErrorMessageProvider.notifier)
+                              .state = null;
+                        },
                       ),
                     ],
                   ),
@@ -228,20 +243,32 @@ Apply now on Kozi!
                                           // Favorite icon with toggle functionality
                                           GestureDetector(
                                             onTap: () {
-                                              final favorites = ref.read(favoritesProvider);
-                                              final favoritesNotifier = ref.read(favoritesProvider.notifier);
-                                              
+                                              final favorites =
+                                                  ref.read(favoritesProvider);
+                                              final favoritesNotifier =
+                                                  ref.read(favoritesProvider
+                                                      .notifier);
+
                                               if (isFavorite) {
                                                 // Remove from favorites
-                                                favoritesNotifier.state = {...favorites}..remove(job.id);
+                                                favoritesNotifier.state = {
+                                                  ...favorites
+                                                }..remove(job.id);
                                               } else {
                                                 // Add to favorites
-                                                favoritesNotifier.state = {...favorites, job.id};
+                                                favoritesNotifier.state = {
+                                                  ...favorites,
+                                                  job.id
+                                                };
                                               }
                                             },
                                             child: Icon(
-                                              isFavorite ? Icons.favorite : Icons.favorite_border,
-                                              color: isFavorite ? Colors.red : Colors.grey,
+                                              isFavorite
+                                                  ? Icons.favorite
+                                                  : Icons.favorite_border,
+                                              color: isFavorite
+                                                  ? Colors.red
+                                                  : Colors.grey,
                                               size: 24,
                                             ),
                                           ),
@@ -265,20 +292,21 @@ Apply now on Kozi!
                             const SizedBox(height: 12),
                             // Company description
                             Text(
-  TextUtils.cleanHtmlText(job.companyDescription ??
-      "${job.company}'s purpose is to innovate and deliver exceptional services to its customers."),
-  style: const TextStyle(
-    fontSize: 14,
-    color: Colors.black87,
-  ),
-),
+                              TextUtils.cleanHtmlText(job.companyDescription ??
+                                  "${job.company}'s purpose is to innovate and deliver exceptional services to its customers."),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
 
                             // Location and date if available
                             if (job.location != null) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                                  const Icon(Icons.location_on,
+                                      size: 16, color: Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
                                     job.location!,
@@ -290,12 +318,13 @@ Apply now on Kozi!
                                 ],
                               ),
                             ],
-                            
+
                             if (job.publishedDate != null) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                  const Icon(Icons.calendar_today,
+                                      size: 16, color: Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
                                     "Published: ${job.publishedDate}",
@@ -307,12 +336,13 @@ Apply now on Kozi!
                                 ],
                               ),
                             ],
-                            
+
                             if (job.deadlineDate != null) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.timer, size: 16, color: Colors.redAccent),
+                                  const Icon(Icons.timer,
+                                      size: 16, color: Colors.redAccent),
                                   const SizedBox(width: 4),
                                   Text(
                                     "Deadline: ${job.deadlineDate}",
@@ -337,12 +367,13 @@ Apply now on Kozi!
                             ),
                             const SizedBox(height: 8),
                             Text(
-  TextUtils.cleanHtmlText(job.fullDescription ?? job.description),
-  style: const TextStyle(
-    fontSize: 14,
-    color: Colors.black87,
-  ),
-),
+                              TextUtils.cleanHtmlText(
+                                  job.fullDescription ?? job.description),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
 
                             const SizedBox(height: 16),
                             // Key responsibilities
@@ -383,59 +414,47 @@ Apply now on Kozi!
               ),
 
               // Bottom buttons
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    // Share button
-                    Expanded(
-                      flex: 1,
-                      child: ElevatedButton(
-                        onPressed: () => _shareJob(job),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.pink,
-                          side: const BorderSide(color: Colors.pink),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text('Share this job'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Apply button
-                    Expanded(
-                      flex: 1,
-                      child: ElevatedButton(
-                        onPressed: isLoading
-                            ? null
-                            : () => _applyForJob(context, ref, job.id),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEA60A7),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          disabledBackgroundColor: Colors.pink[200],
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Apply for this job'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+Padding(
+  padding: const EdgeInsets.all(16.0),
+  child: Row(
+    children: [
+      // Share button
+      Expanded(
+        flex: 1,
+        child: ElevatedButton(
+          onPressed: () => _shareJob(job),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.pink,
+            side: const BorderSide(color: Colors.pink),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: const Text('Share this job'),
+        ),
+      ),
+      const SizedBox(width: 12),
+      // Apply button - simplified to just navigate
+      Expanded(
+        flex: 1,
+        child: ElevatedButton(
+          onPressed: () => _navigateToApplicationForm(context, job.id),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFEA60A7),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: const Text('Apply for this job'),
+        ),
+      ),
+    ],
+  ),
+),
             ],
           ),
         ),
@@ -504,5 +523,13 @@ Apply now on Kozi!
         ],
       ),
     );
+  }
+}
+
+
+Future<void> _navigateToApplicationForm(BuildContext context, String jobId) async {
+  // Simply navigate to the application form screen with the job ID
+  if (context.mounted) {
+    context.push('/apply/$jobId/form');
   }
 }

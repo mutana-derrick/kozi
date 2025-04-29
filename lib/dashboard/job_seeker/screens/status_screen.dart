@@ -163,71 +163,116 @@ class StatusScreen extends ConsumerWidget {
     required int prescriptionCount,
     required bool isCompleted,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: percentage == '36%'
-                ? const Color(0xFFF8BADC).withOpacity(0.7)
-                : percentage == '66%'
-                    ? const Color(0xFFF8BADC)
-                    : const Color(0xFFEC407A),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            percentage,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
+    return _ExpandableStepItem(
+      percentage: percentage,
+      step: step,
+      description: description,
+      prescriptionCount: prescriptionCount,
+      isCompleted: isCompleted,
+    );
+  }
+}
+
+class _ExpandableStepItem extends StatefulWidget {
+  final String percentage;
+  final String step;
+  final String description;
+  final int prescriptionCount;
+  final bool isCompleted;
+
+  const _ExpandableStepItem({
+    required this.percentage,
+    required this.step,
+    required this.description,
+    required this.prescriptionCount,
+    required this.isCompleted,
+  });
+
+  @override
+  State<_ExpandableStepItem> createState() => _ExpandableStepItemState();
+}
+
+class _ExpandableStepItemState extends State<_ExpandableStepItem>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Column(
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    step,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: widget.percentage == '36%'
+                      ? const Color(0xFFF8BADC).withOpacity(0.7)
+                      : widget.percentage == '66%'
+                          ? const Color(0xFFF8BADC)
+                          : const Color(0xFFEC407A),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  widget.percentage,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
-                  const Icon(
-                    Icons.more_vert,
-                    color: Colors.grey,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '$prescriptionCount Prescription',
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.step,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    AnimatedCrossFade(
+                      firstChild: const SizedBox.shrink(),
+                      secondChild: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.description,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${widget.prescriptionCount} Prescription',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      crossFadeState: _expanded
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      duration: const Duration(milliseconds: 300),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -415,11 +415,14 @@ class _PersonalInfoFormSectionState
         const SizedBox(height: 2),
         InkWell(
           onTap: () async {
+            final DateTime today = DateTime.now();
+            final DateTime latestValidDOB =
+                DateTime(today.year - 18, today.month, today.day);
             final DateTime? picked = await showDatePicker(
               context: context,
-              initialDate: DateTime.now(),
+              initialDate: latestValidDOB,
               firstDate: DateTime(1900),
-              lastDate: DateTime.now(),
+              lastDate: latestValidDOB, // Prevents selection of age under 18
             );
 
             if (picked != null) {

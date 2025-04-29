@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.0.105:3000";
+  static const String baseUrl = "http://192.168.1.83:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -48,12 +48,8 @@ class ApiService {
       );
 
       if (response.statusCode == 200 && response.data['token'] != null) {
-        // Store the token securely
         await _storage.write(key: 'auth_token', value: response.data['token']);
-        // Store the email for user ID retrieval
         await _storage.write(key: 'user_email', value: email);
-
-        // Get user ID immediately after login
         final userId = await getUserIdByEmail(email);
 
         return {
@@ -69,9 +65,24 @@ class ApiService {
           'data': response.data
         };
       }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Wrong email or password',
+        };
+      }
+      print('Login error: $e');
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred',
+      };
     } catch (e) {
       print('Login error: $e');
-      return {'success': false, 'message': 'An error occurred: $e'};
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred',
+      };
     }
   }
 
@@ -168,16 +179,28 @@ class ApiService {
   // Get user profile
   Future<Map<String, dynamic>> getUserProfile(String userId) async {
     try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Not authenticated',
+        };
+      }
+
       final response = await _dio.get(
         '$baseUrl/seeker/view_profile/$userId',
         options: Options(
           headers: {
-            'Authorization': 'Bearer ${await _storage.read(key: 'auth_token')}'
+            'Authorization': 'Bearer $token',
           },
         ),
       );
 
       if (response.statusCode == 200) {
+        // Log the response data to debug
+        print('Profile data: ${response.data}');
+
+        // Make sure job_seeker_id is included in the returned data
         return {
           'success': true,
           'data': response.data,
@@ -264,6 +287,67 @@ class ApiService {
         'success': false,
         'message': 'An error occurred: $e',
       };
+    }
+  }
+
+// job seeker Change password method
+  Future<Map<String, dynamic>> changePassword(
+      Map<String, dynamic> passwordData) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      // Note: The server uses the email from the JWT token, so we don't need to send it explicitly
+      // We're only sending the passwords as required by the API endpoint
+      final requestData = {
+        'current_password': passwordData['current_password'],
+        'new_password': passwordData['new_password'],
+        'confirm_password':
+            passwordData['new_password'], // Server requires this field
+      };
+
+      final response = await _dio.post(
+        '$baseUrl/change-password', // Make sure this matches the exact endpoint path
+        data: requestData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json'
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Password changed successfully'
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to change password'
+        };
+      }
+    } on DioException catch (e) {
+      // Handle Dio-specific errors
+      String errorMessage = 'Network error occurred';
+
+      if (e.response != null) {
+        if (e.response?.statusCode == 401) {
+          errorMessage = 'Current password is incorrect';
+        } else if (e.response?.statusCode == 400) {
+          errorMessage = e.response?.data['message'] ?? 'Invalid request';
+        } else if (e.response?.data != null &&
+            e.response?.data['message'] != null) {
+          errorMessage = e.response!.data['message'];
+        }
+      }
+
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      return {'success': false, 'message': 'An error occurred: $e'};
     }
   }
 
@@ -414,26 +498,59 @@ class ApiService {
 // Apply for a job
   Future<Map<String, dynamic>> applyForJob(String jobId) async {
     try {
+      print("Starting apply for job process for job ID: $jobId");
+
+      // Check authentication
       final token = await _storage.read(key: 'auth_token');
       if (token == null) {
+        print("No auth token found - user not authenticated");
         return {'success': false, 'message': 'Not authenticated'};
       }
 
-      final userId = await getUserId();
+      // Get email from storage
+      final email = await _storage.read(key: 'user_email');
+      if (email == null) {
+        print("No user email found in storage");
+        return {'success': false, 'message': 'User email not found'};
+      }
+
+      print("Found user email: $email");
+
+      // Use email to get user ID
+      print("Getting user ID for email: $email");
+      final userId = await getUserIdByEmail(email);
       if (userId == null) {
+        print("Failed to get user ID from email");
         return {'success': false, 'message': 'User ID not found'};
       }
 
-      // Get job_seeker_id from profile
+      print("Successfully retrieved user ID: $userId");
+
+      // Use user ID to get profile data
+      print("Fetching user profile data");
       final profileResult = await getUserProfile(userId);
-      if (!profileResult['success'] || profileResult['data'] == null) {
-        return {'success': false, 'message': 'Failed to fetch profile'};
+
+      if (!profileResult['success']) {
+        print("Failed to fetch profile: ${profileResult['message']}");
+        return {'success': false, 'message': 'Failed to fetch profile data'};
       }
 
-      final jobSeekerId = profileResult['data']['job_seeker_id'];
-      if (jobSeekerId == null) {
-        return {'success': false, 'message': 'Job seeker ID not found'};
+      if (profileResult['data'] == null) {
+        print("Profile data is null");
+        return {'success': false, 'message': 'Profile data not found'};
       }
+
+      // Extract job_seeker_id from profile data
+      final profileData = profileResult['data'];
+      print("Profile data: $profileData");
+
+      // Try to use job_seeker_id if available, otherwise use userId as fallback
+      final jobSeekerId = profileData['job_seeker_id'] ?? userId;
+      print("Using job_seeker_id: $jobSeekerId");
+
+      // Make the API call to apply for the job
+      print("Making API request to apply for job");
+      print("Request data: { job_id: $jobId, job_seeker_id: $jobSeekerId }");
 
       final response = await _dio.post(
         '$baseUrl/seeker/apply',
@@ -446,30 +563,74 @@ class ApiService {
         ),
       );
 
-      if (response.statusCode == 201) {
+      print("API response status: ${response.statusCode}");
+      print("API response data: ${response.data}");
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print("Successfully applied for job");
         return {
           'success': true,
           'message': 'Successfully applied for job',
         };
       } else {
+        print("Failed to apply for job");
         return {
           'success': false,
           'message': response.data['message'] ?? 'Failed to apply for job',
         };
       }
     } on DioException catch (e) {
-      // Handle Dio-specific errors
+      print("DioException occurred: ${e.message}");
+
+      // On a 400 error, try one more time with integer format
+      if (e.response?.statusCode == 400) {
+        try {
+          print("Got 400 error, trying with integer format");
+
+          final token = await _storage.read(key: 'auth_token');
+          final jobIdInt = int.tryParse(jobId);
+          final userId = await getUserId();
+
+          if (jobIdInt != null && userId != null) {
+            final userIdInt = int.tryParse(userId);
+
+            final response = await _dio.post(
+              '$baseUrl/seeker/apply',
+              data: {
+                'job_id': jobIdInt,
+                'job_seeker_id': userIdInt ?? userId,
+              },
+              options: Options(
+                headers: {'Authorization': 'Bearer $token'},
+              ),
+            );
+
+            if (response.statusCode == 201 || response.statusCode == 200) {
+              print("Successfully applied for job with integer format");
+              return {
+                'success': true,
+                'message': 'Successfully applied for job',
+              };
+            }
+          }
+        } catch (retryError) {
+          print("Error during retry: $retryError");
+        }
+      }
+
       if (e.response?.statusCode == 409) {
         return {
           'success': false,
           'message': 'You have already applied for this job'
         };
       }
+
       return {
         'success': false,
         'message': 'Network error: ${e.message}',
       };
     } catch (e) {
+      print("General exception occurred: $e");
       return {
         'success': false,
         'message': 'An error occurred: $e',
