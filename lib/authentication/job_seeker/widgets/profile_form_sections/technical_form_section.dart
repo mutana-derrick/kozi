@@ -1,4 +1,6 @@
 // lib/dashboard/job_seeker/widgets/profile_form_sections/technical_info_section.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -415,6 +417,7 @@ class _TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
   }
 
   // File pickers
+  // In your TechnicalInfoSection.dart when picking files:
   Future<void> _pickImage(
       BuildContext context, Function(String) onPicked) async {
     try {
@@ -422,9 +425,21 @@ class _TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image != null) {
-        onPicked(image.path);
+        print('Image picked: ${image.path}');
+        // Verify file exists
+        final file = File(image.path);
+        final exists = await file.exists();
+        print('File exists: $exists');
+        if (exists) {
+          onPicked(image.path);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selected file does not exist')),
+          );
+        }
       }
     } catch (e) {
+      print('Error picking image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: $e')),
       );

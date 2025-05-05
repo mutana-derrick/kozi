@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kozi/services/api_service.dart';
 import '../models/profile_model.dart';
 
 // Create a notifier class to handle the state
@@ -101,19 +102,60 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
   // Method to submit profile data to backend
   Future<bool> submitProfile() async {
-    // Set submitting state to true
     state = state.copyWith(isSubmitting: true);
 
     try {
-      // TODO: Implement actual API call
-      // For now, simulate a network request
-      await Future.delayed(const Duration(seconds: 1));
+      // Get API service (however you access it in your app)
+      final apiService = ApiService();
 
-      // Set submitting state to false
+      // Get user ID
+      final userId = await apiService.getUserId();
+      if (userId == null) {
+        state = state.copyWith(isSubmitting: false);
+        return false;
+      }
+
+      // Get category ID from the selected category name
+      final categoryMapping = await apiService.loadCategoryMapping();
+      final categoryId = categoryMapping[state.category];
+
+      if (categoryId == null) {
+        print('Could not find ID for category: ${state.category}');
+        state = state.copyWith(isSubmitting: false);
+        return false;
+      }
+
+      // Create data for API request
+      final data = {
+        'first_name': state.firstName,
+        'last_name': state.lastName,
+        'gender': state.gender,
+        'fathers_name': state.fathersName,
+        'mothers_name': state.mothersName,
+        'telephone': state.telephone,
+        'province': state.province,
+        'district': state.district,
+        'sector': state.sector,
+        'cell': state.cell,
+        'village': state.village,
+        'bio': state.skills,
+        'salary': state.expectedSalary,
+        'date_of_birth': state.dateOfBirth,
+        'disability': state.disability,
+        'categories_id': categoryId.toString(), // Send the ID, not the name
+        'category': state.category,
+        'image': state.profileImagePath,
+        'id': state.newIdCardPath,
+        'cv': state.cvPath,
+      };
+
+      // Send update request
+      final result = await apiService.updateUserProfile(userId, data);
+
       state = state.copyWith(isSubmitting: false);
-      return true;
+      return result['success'] == true;
     } catch (e) {
-      // Set submitting state to false and handle error
+      print('Error during profile submission: $e');
       state = state.copyWith(isSubmitting: false);
       return false;
     }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:math' as math;
 
 class ApiService {
   // Base URL should point to your local server
@@ -117,6 +118,71 @@ class ApiService {
     }
   }
 
+//get category id by name
+  Future<int?> getCategoryIdByName(String categoryName) async {
+    try {
+      final response = await _dio.get(
+        '$baseUrl/category-by-name',
+        queryParameters: {'name': categoryName},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${await _storage.read(key: 'auth_token')}'
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return int.tryParse(response.data['id'].toString());
+      }
+
+      // If no API endpoint exists, use hardcoded mapping for now (based on your screenshot)
+      final Map<String, int> categoryMap = {
+        'baby sitters': 5,
+        'pool cleaners': 9,
+        'pet sitters': 10,
+        // Add more mappings as needed
+      };
+
+      return categoryMap[categoryName];
+    } catch (e) {
+      print('Error getting category ID: $e');
+      return null;
+    }
+  }
+
+// Method to load all categories and build a mapping
+  Future<Map<String, int>> loadCategoryMapping() async {
+    try {
+      final response = await _dio.get(
+        '$baseUrl/category-types-with-categories',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${await _storage.read(key: 'auth_token')}'
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, int> mapping = {};
+
+        final List<dynamic> categoryTypes = response.data;
+        for (final typeData in categoryTypes) {
+          final List<dynamic> categories = typeData['categories'] ?? [];
+          for (final category in categories) {
+            mapping[category['name']] = category['id'];
+          }
+        }
+
+        return mapping;
+      }
+
+      return {};
+    } catch (e) {
+      print('Error loading category mapping: $e');
+      return {};
+    }
+  }
+
   // Job Seeker Signup
   Future<Map<String, dynamic>> signupJobSeeker(
       Map<String, dynamic> userData) async {
@@ -224,65 +290,131 @@ class ApiService {
   Future<Map<String, dynamic>> updateUserProfile(
       String userId, Map<String, dynamic> data) async {
     try {
+      // Log the data being sent for debugging
+      print('Updating profile for user $userId with data: $data');
+
       // Create FormData for file uploads
       final formData = FormData();
 
       // Add text fields
       data.forEach((key, value) {
         if (key != 'image' && key != 'id' && key != 'cv') {
-          formData.fields.add(MapEntry(key, value.toString()));
+          if (value != null) {
+            print('Adding field: $key = $value');
+            formData.fields.add(MapEntry(key, value.toString()));
+          } else {
+            print('Warning: Field $key is null');
+          }
         }
       });
 
       // Add image files if present
       if (data['image'] != null && data['image'].toString().isNotEmpty) {
-        formData.files.add(MapEntry(
-          'image',
-          await MultipartFile.fromFile(data['image'],
-              filename: data['image'].split('/').last),
-        ));
+        print('Adding image file: ${data['image']}');
+        try {
+          formData.files.add(MapEntry(
+            'image',
+            await MultipartFile.fromFile(data['image'],
+                filename: data['image'].split('/').last),
+          ));
+        } catch (e) {
+          print('Error adding image file: $e');
+          throw Exception('Failed to process image file: $e');
+        }
+      } else {
+        print('Warning: No image file provided');
       }
 
       if (data['id'] != null && data['id'].toString().isNotEmpty) {
-        formData.files.add(MapEntry(
-          'id',
-          await MultipartFile.fromFile(data['id'],
-              filename: data['id'].split('/').last),
-        ));
+        print('Adding ID file: ${data['id']}');
+        try {
+          formData.files.add(MapEntry(
+            'id',
+            await MultipartFile.fromFile(data['id'],
+                filename: data['id'].split('/').last),
+          ));
+        } catch (e) {
+          print('Error adding ID file: $e');
+          throw Exception('Failed to process ID file: $e');
+        }
+      } else {
+        print('Warning: No ID file provided');
       }
 
       if (data['cv'] != null && data['cv'].toString().isNotEmpty) {
-        formData.files.add(MapEntry(
-          'cv',
-          await MultipartFile.fromFile(data['cv'],
-              filename: data['cv'].split('/').last),
-        ));
+        print('Adding CV file: ${data['cv']}');
+        try {
+          formData.files.add(MapEntry(
+            'cv',
+            await MultipartFile.fromFile(data['cv'],
+                filename: data['cv'].split('/').last),
+          ));
+        } catch (e) {
+          print('Error adding CV file: $e');
+          throw Exception('Failed to process CV file: $e');
+        }
+      } else {
+        print('Warning: No CV file provided');
       }
 
-      final response = await _dio.put(
-        '$baseUrl/seeker/update_profile/$userId',
-        data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${await _storage.read(key: 'auth_token')}',
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Profile updated successfully',
-        };
-      } else {
+      // Get the auth token
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        print('Error: No auth token found');
         return {
           'success': false,
-          'message': response.data['message'] ?? 'Failed to update profile',
+          'message': 'Authentication token not found',
+        };
+      }
+
+      // Log the request URL and headers
+      print('Making PUT request to: $baseUrl/seeker/update_profile/$userId');
+      print('With token: ${token.substring(0, math.min(10, token.length))}...');
+
+      // Add more detailed error handling
+      try {
+        final response = await _dio.put(
+          '$baseUrl/seeker/update_profile/$userId',
+          data: formData,
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'multipart/form-data',
+            },
+          ),
+        );
+
+        print('Response status: ${response.statusCode}');
+        print('Response data: ${response.data}');
+
+        if (response.statusCode == 200) {
+          return {
+            'success': true,
+            'message': 'Profile updated successfully',
+          };
+        } else {
+          return {
+            'success': false,
+            'message': response.data['message'] ?? 'Failed to update profile',
+          };
+        }
+      } on DioException catch (e) {
+        // Log detailed Dio error information
+        print('DioException during profile update:');
+        print('  Status code: ${e.response?.statusCode}');
+        print('  Response data: ${e.response?.data}');
+        print('  Request data: ${e.requestOptions.data}');
+        print('  Request path: ${e.requestOptions.path}');
+
+        return {
+          'success': false,
+          'message':
+              'Server error: ${e.response?.data?['message'] ?? e.message}',
+          'details': e.response?.data,
         };
       }
     } catch (e) {
-      print('Error updating profile: $e');
+      print('Unhandled error updating profile: $e');
       return {
         'success': false,
         'message': 'An error occurred: $e',
