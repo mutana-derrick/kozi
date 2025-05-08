@@ -25,20 +25,25 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _telephoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
   // Error state variables
   String? _emailError;
   String? _firstNameError;
   String? _lastNameError;
+  String? _telephoneError;
   String? _passwordError;
   String? _errorMessage;
+
+  bool _isProcessing = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _telephoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -76,6 +81,16 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
       setState(() => _lastNameError = null);
     }
     
+    // Validate telephone
+    final telephoneError = FormValidation.validatePhone(
+        _telephoneController.text);
+    if (telephoneError != null) {
+      setState(() => _telephoneError = telephoneError);
+      isValid = false;
+    } else {
+      setState(() => _telephoneError = null);
+    }
+    
     // Validate password
     final passwordError = FormValidation.validatePassword(_passwordController.text);
     if (passwordError != null) {
@@ -97,66 +112,71 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
     return isValid;
   }
 
-  void _showOtpVerification() {
-    // Validate all fields first
+  Future<void> _processSignUp() async {
+    // First validate all fields
     if (!_validateFields()) {
-      return; // Stop if validation fails
+      return;
     }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => OtpVerificationPopup(
-        email: _emailController.text,
-        onVerified: (otp) {
-          // Process the OTP verification
-          Navigator.of(context).pop(); // Close the dialog
-          _processSignUp(otp);
-        },
-      ),
-    );
-  }
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+    });
 
-  Future<void> _processSignUp(String otp) async {
-    // Prepare signup data
-    final signupData = {
-      'email': _emailController.text,
-      'first_name': _firstNameController.text,
-      'last_name': _lastNameController.text,
-      'password': _passwordController.text,
-      'role_id': 3, // Assuming 3 is for job seekers
-      'gender': 'Other', // Default value, can be updated later
-      'full_name': '${_firstNameController.text} ${_lastNameController.text}',
-      'picture': '', // Can be updated later
-      'verifiedEmail': true, // Since we verified with OTP
-      'token': otp,
-      'verification_code': otp,
-    };
+    try {
+      // Prepare signup data according to the job_seeker.js API
+      final signupData = {
+        'email': _emailController.text,
+        'first_name': _firstNameController.text,
+        'last_name': _lastNameController.text,
+        'telephone': _telephoneController.text,
+        'password': _passwordController.text,
+        'role_id': 1, // Set role_id to 1 for job seekers as specified
+      };
 
-    final authState = ref.read(authProvider);
-    
-    if (authState.isLoading) return;
+      // Use the existing ApiService for signup
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.signupJobSeeker(signupData);
 
-    // Attempt signup
-    final success = await ref.read(authProvider.notifier).signup(signupData);
-    
-    if (success) {
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      
-        // Navigate to login or complete profile
-        context.push('/seekerlogin');
+      if (result['success']) {
+        // Show OTP verification popup after successful signup
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => OtpVerificationPopup(
+              email: _emailController.text,
+              onVerified: (otp) {
+                // Close the dialog when verified
+                Navigator.of(context).pop();
+                
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Account created successfully! You can now login'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                
+                // Navigate to login screen
+                context.push('/seekerlogin');
+              },
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        setState(() {
+          _errorMessage = result['message'] ?? 'Signup failed. Please try again.';
+        });
       }
-    } else {
-      // Show error
+    } catch (e) {
       setState(() {
-        _errorMessage = ref.read(authProvider).errorMessage ?? 'Signup failed';
+        _errorMessage = 'An unexpected error occurred: $e';
+      });
+    } finally {
+      setState(() {
+        _isProcessing = false;
       });
     }
   }
@@ -168,8 +188,6 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
     // Watch the terms agreement state
     final hasAgreedToTerms = ref.watch(termsAgreementProvider);
     final screenHeight = MediaQuery.of(context).size.height;
-    // Watch auth state for loading
-    final authState = ref.watch(authProvider);
 
     return Scaffold(
       body: Container(
@@ -422,6 +440,61 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
 
                         const SizedBox(height: 16),
 
+                        // Telephone Field with validation
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: _telephoneError != null ? ValidationColors.errorRed : Colors.grey.shade300,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _telephoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Telephone *',
+                              hintStyle: TextStyle(
+                                color: _telephoneError != null ? ValidationColors.errorRed : Colors.black45,
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              suffixIcon: _telephoneError != null 
+                                  ? const Icon(Icons.error, color: ValidationColors.errorRed)
+                                  : null,
+                            ),
+                            onChanged: (value) {
+                              if (_telephoneError != null) {
+                                setState(() => _telephoneError = null);
+                              }
+                            },
+                          ),
+                        ),
+                        if (_telephoneError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5, left: 5),
+                            child: Text(
+                              _telephoneError!,
+                              style: const TextStyle(
+                                color: ValidationColors.errorRed,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 16),
+
                         // Password Field with validation
                         Container(
                           decoration: BoxDecoration(
@@ -619,7 +692,7 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
 
                         // Sign Up Button
                         ElevatedButton(
-                          onPressed: !authState.isLoading ? _showOtpVerification : null,
+                          onPressed: _isProcessing ? null : _processSignUp,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEA60A7),
                             foregroundColor: Colors.white,
@@ -630,7 +703,7 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
                             disabledBackgroundColor:
                                 const Color(0xFFEA60A7).withOpacity(0.5),
                           ),
-                          child: authState.isLoading
+                          child: _isProcessing
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
@@ -663,8 +736,8 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
                             ),
                             GestureDetector(
                               onTap: () {
-                            context.push('/seekerlogin');
-                          },
+                                context.push('/seekerlogin');
+                              },
                               child: const Text(
                                 "Log in",
                                 style: TextStyle(

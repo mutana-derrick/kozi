@@ -195,7 +195,7 @@ class ApiService {
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'message': 'Signup successful',
+          'message': 'Signup successful. Please verify your email.',
           'data': response.data
         };
       } else {
@@ -215,6 +215,204 @@ class ApiService {
         } else if (e.response?.statusCode == 409) {
           errorMessage = 'Email already exists';
         }
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    }
+  }
+
+  // Verify OTP method
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/seeker/verify-otp',
+        data: {
+          'email': email,
+          'otp': otp,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Email verified successfully!',
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Verification failed',
+          'data': response.data
+        };
+      }
+    } catch (e) {
+      print('OTP verification error: $e');
+
+      String errorMessage = 'Network error occurred';
+      if (e is DioException) {
+        if (e.response?.statusCode == 400) {
+          errorMessage = e.response?.data?['message'] ?? 'Invalid OTP';
+        }
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    }
+  }
+
+  // Resend OTP method
+  Future<Map<String, dynamic>> resendOtp(String email) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/seeker/resend-otp',
+        data: {
+          'email': email,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'New OTP sent successfully!',
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to resend OTP',
+          'data': response.data
+        };
+      }
+    } catch (e) {
+      print('Resend OTP error: $e');
+
+      String errorMessage = 'Network error occurred';
+      if (e is DioException) {
+        if (e.response?.statusCode == 400) {
+          errorMessage = e.response?.data?['message'] ?? 'Email not found';
+        }
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    }
+  }
+
+  // Forgot password method
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/seeker/forgot-password',
+        data: {
+          'email': email,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'OTP sent to your email.',
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to process request',
+          'data': response.data
+        };
+      }
+    } catch (e) {
+      print('Forgot password error: $e');
+
+      String errorMessage = 'Network error occurred';
+      if (e is DioException) {
+        if (e.response?.statusCode == 404) {
+          errorMessage = 'Email not found';
+        }
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    }
+  }
+
+  // Verify forgot password OTP
+  Future<Map<String, dynamic>> verifyForgotPasswordOtp(String email, String otp,
+      {bool resend = false}) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/seeker/verify-forgot-otp',
+        data: {
+          'email': email,
+          'otp': otp,
+          'resend': resend,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': resend
+              ? 'New OTP has been sent to your email.'
+              : 'OTP verified. You can now reset your password.',
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Verification failed',
+          'data': response.data
+        };
+      }
+    } catch (e) {
+      print('Verify forgot password OTP error: $e');
+
+      String errorMessage = 'Network error occurred';
+      if (e is DioException) {
+        if (e.response?.statusCode == 400) {
+          errorMessage = e.response?.data?['message'] ?? 'Invalid OTP';
+          // Check if OTP expired
+          if (e.response?.data?['expired'] == true) {
+            errorMessage = 'OTP expired. Please request a new one.';
+          }
+        } else if (e.response?.statusCode == 404) {
+          errorMessage = 'Email not found';
+        }
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    }
+  }
+
+  // Reset password
+  Future<Map<String, dynamic>> resetPassword(
+      String email, String newPassword) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/seeker/password-change',
+        data: {
+          'email': email,
+          'newPassword': newPassword,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Password changed successfully. You can now log in.',
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to change password',
+          'data': response.data
+        };
+      }
+    } catch (e) {
+      print('Reset password error: $e');
+
+      String errorMessage = 'Network error occurred';
+      if (e is DioException) {
+        errorMessage =
+            e.response?.data?['message'] ?? 'Failed to change password';
       }
 
       return {'success': false, 'message': errorMessage, 'error': e.toString()};
@@ -368,7 +566,8 @@ class ApiService {
       }
 
       // Log the request URL and headers
-      print('Making PUT request to: $baseUrl/seeker/update_profile_mobile/$userId');
+      print(
+          'Making PUT request to: $baseUrl/seeker/update_profile_mobile/$userId');
       print('With token: ${token.substring(0, math.min(10, token.length))}...');
 
       // Add more detailed error handling

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,39 +51,39 @@ class ProfileImageSection extends ConsumerWidget {
                 : _buildDefaultAvatar(),
           ),
         ),
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: InkWell(
-            onTap: () => _pickImage(context, ref),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.black38,
-                  shape: BoxShape.circle,
-                ),
-                child: const FaIcon(
-                  FontAwesomeIcons.camera,
-                  color: Colors.white,
-                  size: 14,
-                ),
-              ),
-            ),
-          ),
-        ),
+        // Positioned(
+        // bottom: 0,
+        // right: 0,
+        // child: InkWell(
+        //   onTap: () => _pickImage(context, ref),
+        //   child: Container(
+        //     padding: const EdgeInsets.all(2),
+        //     decoration: BoxDecoration(
+        //       color: Colors.white,
+        //       shape: BoxShape.circle,
+        //       boxShadow: [
+        //         BoxShadow(
+        //           color: Colors.black.withOpacity(0.1),
+        //           blurRadius: 4,
+        //           offset: const Offset(0, 2),
+        //         ),
+        //       ],
+        //     ),
+        //     child: Container(
+        //       padding: const EdgeInsets.all(6),
+        //       decoration: const BoxDecoration(
+        //         color: Colors.black38,
+        //         shape: BoxShape.circle,
+        //       ),
+        //       child: const FaIcon(
+        //         FontAwesomeIcons.camera,
+        //         color: Colors.white,
+        //         size: 14,
+        //       ),
+        //     ),
+        //   ),
+        // ),
+        //),
       ],
     );
   }

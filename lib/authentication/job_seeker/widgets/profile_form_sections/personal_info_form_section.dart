@@ -377,57 +377,149 @@ class _PersonalInfoFormSectionState
     );
   }
 
-  Widget buildDatePickerField(
-    BuildContext context,
-    WidgetRef ref, {
-    required String label,
-    required String value,
-    String? errorText,
-    bool isRequired = false,
-  }) {
-    final hasError = errorText != null;
+Widget buildDatePickerField(
+  BuildContext context,
+  WidgetRef ref, {
+  required String label,
+  required String value,
+  String? errorText,
+  bool isRequired = false,
+}) {
+  final hasError = errorText != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color.fromARGB(255, 78, 80, 80),
-                  fontWeight: FontWeight.w500,
+  // Function to convert API date format to a more readable display format
+  String formatDateForDisplay(String dateString) {
+    // Default display text if date is not set or invalid
+    if (dateString == 'DD/MM/YYYY' || 
+        dateString == '0000-00-00' || 
+        dateString.startsWith('0000-00-00')) {
+      return 'Select Date';
+    }
+    
+    try {
+      // Handle ISO format (1899-11-29T22:30:00.000Z)
+      if (dateString.contains('T')) {
+        final parsedDate = DateTime.parse(dateString);
+        return "${parsedDate.day.toString().padLeft(2, '0')}/${parsedDate.month.toString().padLeft(2, '0')}/${parsedDate.year}";
+      }
+      
+      // Handle yyyy-mm-dd format
+      if (dateString.contains('-') && dateString.length >= 10) {
+        final parts = dateString.split('-');
+        if (parts.length == 3) {
+          return "${parts[2]}/${parts[1]}/${parts[0]}"; // dd/mm/yyyy format for display
+        }
+      }
+      
+      // Handle dd/mm/yyyy format (already in display format)
+      if (dateString.contains('/') && dateString.length >= 10) {
+        return dateString; // Already in display format
+      }
+    } catch (e) {
+      print('Error parsing date for display: $e');
+    }
+    
+    // Return original value if it's not in expected format or parsing fails
+    return dateString;
+  }
+
+  // Get display value 
+  final displayValue = formatDateForDisplay(value);
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color.fromARGB(255, 78, 80, 80),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (isRequired)
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(
+                  color: ValidationColors.errorRed,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              if (isRequired)
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(
-                    color: ValidationColors.errorRed,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
-        const SizedBox(height: 2),
-        InkWell(
-          onTap: () async {
-            final DateTime today = DateTime.now();
-            final DateTime latestValidDOB =
-                DateTime(today.year - 18, today.month, today.day);
+      ),
+      const SizedBox(height: 2),
+      InkWell(
+        onTap: () async {
+          final DateTime today = DateTime.now();
+          final DateTime latestValidDOB =
+              DateTime(today.year - 18, today.month, today.day);
+          final DateTime firstAllowedDate = DateTime(1900, 1, 1);
+          
+          // Determine initial date
+          DateTime initialDate = latestValidDOB;
+          
+          // Try to parse the existing value if it's valid
+          if (value != 'DD/MM/YYYY' && 
+              value != 'Select Date' && 
+              value != '0000-00-00' && 
+              !value.startsWith('0000-00-00')) {
+            try {
+              // Try to parse ISO format with time
+              if (value.contains('T')) {
+                final tempDate = DateTime.parse(value);
+                
+                // Ensure the parsed date is valid and within allowed range
+                if (!tempDate.isBefore(firstAllowedDate) && !tempDate.isAfter(latestValidDOB)) {
+                  initialDate = tempDate;
+                }
+              } 
+              // Try to parse yyyy-mm-dd format
+              else if (value.contains('-')) {
+                final tempDate = DateTime.parse(value);
+                
+                // Ensure the parsed date is valid and within allowed range
+                if (!tempDate.isBefore(firstAllowedDate) && !tempDate.isAfter(latestValidDOB)) {
+                  initialDate = tempDate;
+                }
+              }
+              // Try to parse dd/mm/yyyy format
+              else if (value.contains('/')) {
+                final parts = value.split('/');
+                if (parts.length == 3) {
+                  final tempDate = DateTime(
+                    int.parse(parts[2]),  // year
+                    int.parse(parts[1]),  // month
+                    int.parse(parts[0]),  // day
+                  );
+                  
+                  // Ensure the parsed date is valid and within allowed range
+                  if (!tempDate.isBefore(firstAllowedDate) && !tempDate.isAfter(latestValidDOB)) {
+                    initialDate = tempDate;
+                  }
+                }
+              }
+            } catch (e) {
+              print('Error parsing date for picker: $e');
+              // Keep default initialDate if parsing fails
+            }
+          }
+          
+          try {
             final DateTime? picked = await showDatePicker(
               context: context,
-              initialDate: latestValidDOB,
-              firstDate: DateTime(1900),
-              lastDate: latestValidDOB, // Prevents selection of age under 18
+              initialDate: initialDate,
+              firstDate: firstAllowedDate,
+              lastDate: latestValidDOB,
             );
 
             if (picked != null) {
-              final formattedDate =
-                  "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+              // Format in yyyy-mm-dd format for storage
+              final formattedDate = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+              
               ref
                   .read(profileProvider.notifier)
                   .updateDateOfBirth(formattedDate);
@@ -439,70 +531,82 @@ class _PersonalInfoFormSectionState
               ref.read(personalInfoErrorsProvider.notifier).state =
                   currentErrors;
             }
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    hasError ? ValidationColors.errorRed : Colors.transparent,
-                width: hasError ? 1.0 : 0,
+          } catch (e) {
+            print('Error showing date picker: $e');
+            // Show a snackbar with error message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error selecting date: $e'),
+                backgroundColor: Colors.red,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
+            );
+          }
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color:
+                  hasError ? ValidationColors.errorRed : Colors.transparent,
+              width: hasError ? 1.0 : 0,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: hasError
-                        ? ValidationColors.errorRed
-                        : const Color(0xFF5C6BC0),
-                    fontWeight: FontWeight.w400,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                displayValue, // Show formatted date in display format
+                style: TextStyle(
+                  fontSize: 16,
+                  color: hasError
+                      ? ValidationColors.errorRed
+                      : (displayValue == 'Select Date' 
+                          ? Colors.grey[600] 
+                          : const Color(0xFF5C6BC0)),
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              Row(
+                children: [
+                  if (hasError)
+                    const Icon(Icons.error,
+                        color: ValidationColors.errorRed, size: 20),
+                  const SizedBox(width: 8),
+                  const FaIcon(
+                    FontAwesomeIcons.calendar,
+                    size: 18,
+                    color: Color(0xFF5C6BC0),
                   ),
-                ),
-                Row(
-                  children: [
-                    if (hasError)
-                      const Icon(Icons.error,
-                          color: ValidationColors.errorRed, size: 20),
-                    const SizedBox(width: 8),
-                    const FaIcon(
-                      FontAwesomeIcons.calendar,
-                      size: 18,
-                      color: Color(0xFF5C6BC0),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      if (hasError)
+        Padding(
+          padding: const EdgeInsets.only(top: 5, left: 5),
+          child: Text(
+            errorText,
+            style: const TextStyle(
+              color: ValidationColors.errorRed,
+              fontSize: 12,
             ),
           ),
         ),
-        if (hasError)
-          Padding(
-            padding: const EdgeInsets.only(top: 5, left: 5),
-            child: Text(
-              errorText,
-              style: const TextStyle(
-                color: ValidationColors.errorRed,
-                fontSize: 12,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+    ],
+  );
+}
 
   Widget buildDropdownField(
     BuildContext context, {

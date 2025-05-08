@@ -108,59 +108,7 @@ class ProfileHeader extends ConsumerWidget {
                   ),
           ),
         ),
-        GestureDetector(
-          onTap: () => _pickImage(context, ref),
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.camera_alt,
-              color: Colors.grey,
-              size: 20,
-            ),
-          ),
-        ),
       ],
     );
-  }
-
-  Future<void> _pickImage(BuildContext context, WidgetRef ref) async {
-    try {
-      // Simulate picking image - in a real app, use ImagePicker
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Select Image'),
-          content: const Text('Choose an image source'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ref
-                    .read(profileProvider.notifier)
-                    .updateProfileImagePath('/path/to/selected_image.jpg');
-              },
-              child: const Text('Gallery'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ref
-                    .read(profileProvider.notifier)
-                    .updateProfileImagePath('/path/to/camera_image.jpg');
-              },
-              child: const Text('Camera'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
-    }
   }
 }

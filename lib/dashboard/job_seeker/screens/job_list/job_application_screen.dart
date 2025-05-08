@@ -7,6 +7,7 @@ import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/screens/job_list/job_list_screen.dart';
+import 'package:kozi/shared/date_formatter.dart';
 import 'package:kozi/utils/text_utils.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -327,7 +328,8 @@ Apply now on Kozi!
                                       size: 16, color: Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "Published: ${job.publishedDate}",
+                                    DateFormatter.formatPublished(
+                                        job.publishedDate),
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey,
@@ -345,11 +347,11 @@ Apply now on Kozi!
                                       size: 16, color: Colors.redAccent),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "Deadline: ${job.deadlineDate}",
+                                    DateFormatter.formatDeadline(
+                                        job.deadlineDate),
                                     style: const TextStyle(
                                       fontSize: 14,
-                                      color: Colors.redAccent,
-                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
                                     ),
                                   ),
                                 ],
@@ -414,47 +416,48 @@ Apply now on Kozi!
               ),
 
               // Bottom buttons
-Padding(
-  padding: const EdgeInsets.all(16.0),
-  child: Row(
-    children: [
-      // Share button
-      Expanded(
-        flex: 1,
-        child: ElevatedButton(
-          onPressed: () => _shareJob(job),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.pink,
-            side: const BorderSide(color: Colors.pink),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-          child: const Text('Share this job'),
-        ),
-      ),
-      const SizedBox(width: 12),
-      // Apply button - simplified to just navigate
-      Expanded(
-        flex: 1,
-        child: ElevatedButton(
-          onPressed: () => _navigateToApplicationForm(context, job.id),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFEA60A7),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-          child: const Text('Apply for this job'),
-        ),
-      ),
-    ],
-  ),
-),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    // Share button
+                    Expanded(
+                      flex: 1,
+                      child: ElevatedButton(
+                        onPressed: () => _shareJob(job),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.pink,
+                          side: const BorderSide(color: Colors.pink),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('Share this job'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Apply button - simplified to just navigate
+                    Expanded(
+                      flex: 1,
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            _navigateToApplicationForm(context, job.id),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEA60A7),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('Apply for this job'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -526,8 +529,8 @@ Padding(
   }
 }
 
-
-Future<void> _navigateToApplicationForm(BuildContext context, String jobId) async {
+Future<void> _navigateToApplicationForm(
+    BuildContext context, String jobId) async {
   // Simply navigate to the application form screen with the job ID
   if (context.mounted) {
     context.push('/apply/$jobId/form');

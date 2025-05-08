@@ -28,7 +28,7 @@ class ProfileState {
     this.fathersName = '',
     this.mothersName = '',
     this.dateOfBirth = 'DD/MM/YYYY',
-    this.gender = '',
+    this.gender = 'select gender',
     this.province = '',
     this.district = '',
     this.sector = '',

@@ -2,9 +2,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/utils/form_validation.dart';
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
+//import 'package:kozi/services/api_service.dart';
 
-class OtpVerificationPopup extends StatefulWidget {
+class OtpVerificationPopup extends ConsumerStatefulWidget {
   final String email;
   final Function(String) onVerified;
 
@@ -15,10 +18,10 @@ class OtpVerificationPopup extends StatefulWidget {
   });
 
   @override
-  State<OtpVerificationPopup> createState() => _OtpVerificationPopupState();
+  ConsumerState<OtpVerificationPopup> createState() => _OtpVerificationPopupState();
 }
 
-class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
+class _OtpVerificationPopupState extends ConsumerState<OtpVerificationPopup> {
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
@@ -28,6 +31,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
   int _timeLeft = 180; // 3 minutes in seconds
   String? _errorMessage;
   bool _isVerifying = false;
+  bool _isResending = false;
 
   @override
   void initState() {
@@ -50,7 +54,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
   String _formatTimeLeft() {
     int minutes = _timeLeft ~/ 60;
     int seconds = _timeLeft % 60;
-    return "$minutes : ${seconds.toString().padLeft(2, '0')} minutes";
+    return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
 
   bool _validateOtp() {
@@ -94,52 +98,89 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
       _errorMessage = null;
     });
     
-    String otp = _controllers.map((controller) => controller.text).join();
-    
-    // Simulate verification process with a delay
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    setState(() {
-      _isVerifying = false;
-    });
-    
-    // Pass the OTP to the callback function
-    widget.onVerified(otp);
+    try {
+      String otp = _controllers.map((controller) => controller.text).join();
+      
+      // Use the API service to verify the OTP
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.verifyOtp(widget.email, otp);
+      
+      if (result['success']) {
+        // OTP verification successful
+        widget.onVerified(otp);
+      } else {
+        // Show error message
+        setState(() {
+          _errorMessage = result['message'] ?? 'Invalid OTP. Please try again.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An error occurred during verification: $e';
+      });
+    } finally {
+      setState(() {
+        _isVerifying = false;
+      });
+    }
   }
 
-  void _requestNewCode() {
+  Future<void> _requestNewCode() async {
     // Only allow requesting a new code if timer has expired
     if (_timeLeft > 0) {
       return;
     }
     
-    // Reset timer
     setState(() {
-      _timeLeft = 180;
+      _isResending = true;
       _errorMessage = null;
     });
-    _startTimer();
-
-    // Clear all fields and reset errors
-    for (int i = 0; i < 6; i++) {
-      _controllers[i].clear();
+    
+    try {
+      // Use the API service to resend OTP
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.resendOtp(widget.email);
+      
+      if (result['success']) {
+        // Reset timer
+        setState(() {
+          _timeLeft = 180;
+        });
+        _startTimer();
+        
+        // Clear all fields
+        for (var controller in _controllers) {
+          controller.clear();
+        }
+        
+        // Set focus to first field
+        if (_focusNodes.isNotEmpty) {
+          _focusNodes[0].requestFocus();
+        }
+        
+        // Show a snackbar to confirm
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('A new verification code has been sent.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          _errorMessage = result['message'] ?? 'Failed to request new code.';
+        });
+      }
+    } catch (e) {
       setState(() {
-        _hasError[i] = false;
+        _errorMessage = 'Error requesting new code: $e';
+      });
+    } finally {
+      setState(() {
+        _isResending = false;
       });
     }
-
-    // Set focus to first field
-    if (_focusNodes.isNotEmpty) {
-      _focusNodes[0].requestFocus();
-    }
-
-    // Show a snackbar to confirm
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('A new verification code has been sent.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
   @override
@@ -180,7 +221,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
               ),
 
               const Text(
-                'OTP verification',
+                'OTP Verification',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -188,7 +229,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Please enter a verification code sent to ${widget.email}',
+                'Please enter the verification code sent to ${widget.email}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -326,7 +367,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
                         ),
                       )
                     : const Text(
-                      'Confirm',
+                      'Verify',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -339,7 +380,7 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
 
               // Timer text
               Text(
-                'OTP expires in: ${_formatTimeLeft()}',
+                'Code expires in: ${_formatTimeLeft()}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -350,17 +391,26 @@ class _OtpVerificationPopupState extends State<OtpVerificationPopup> {
 
               // Request another code - conditionally clickable
               GestureDetector(
-                onTap: _timeLeft <= 0 ? _requestNewCode : null,
-                child: Text(
-                  'Request another verification code?',
-                  style: TextStyle(
-                    color: _timeLeft <= 0
-                        ? const Color(0xFFEA60A7)
-                        : Colors.grey[400],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                onTap: (_timeLeft <= 0 && !_isResending) ? _requestNewCode : null,
+                child: _isResending
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEA60A7)),
+                      ),
+                    )
+                  : Text(
+                    'Request another verification code',
+                    style: TextStyle(
+                      color: _timeLeft <= 0
+                          ? const Color(0xFFEA60A7)
+                          : Colors.grey[400],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
               ),
             ],
           ),
