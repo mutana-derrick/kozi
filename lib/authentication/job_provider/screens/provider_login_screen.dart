@@ -81,8 +81,8 @@ class _ProviderLoginScreenState extends ConsumerState<ProviderLoginScreen> {
       if (result['success']) {
         // Navigate to setup profile or dashboard based on your app flow
         if (mounted) {
-          context.go('/providersetupprofile');
-          //context.go('/providerdashboardscreen');
+          //context.go('/providersetupprofile');
+          context.go('/providerdashboardscreen');
         }
       } else {
         // Show error from auth state

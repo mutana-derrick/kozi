@@ -54,7 +54,10 @@ class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfil
         profileNotifier.updateLastName(userData['last_name'] ?? '');
         profileNotifier.updateGender(userData['gender'] ?? '');
         profileNotifier.updateTelephone(userData['telephone'] ?? '');
+        // Date of birth is no longer needed but we'll keep it for backward compatibility
         profileNotifier.updateDateOfBirth(userData['date_of_birth'] ?? 'DD/MM/YYYY');
+        // Update country field if available in the API response
+        profileNotifier.updateCountry(userData['country'] ?? '');
         profileNotifier.updateProvince(userData['province'] ?? '');
         profileNotifier.updateDistrict(userData['district'] ?? '');
         profileNotifier.updateSector(userData['sector'] ?? '');

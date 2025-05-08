@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kozi/utils/form_validation.dart';
 import '../../providers/profile_provider.dart';
 
 // Provider to track form validation errors
-final personalInfoErrorsProvider = StateProvider<Map<String, String?>>((ref) => {});
+final personalInfoErrorsProvider =
+    StateProvider<Map<String, String?>>((ref) => {});
 
 class PersonalInfoFormSection extends ConsumerStatefulWidget {
   const PersonalInfoFormSection({super.key});
@@ -42,13 +43,7 @@ class _PersonalInfoFormSectionState
       isValid = false;
     }
 
-    // Validate date of birth
-    final dobError = FormValidation.validateRequired(
-        profileState.dateOfBirth, 'Date of birth');
-    if (dobError != null || profileState.dateOfBirth == 'DD/MM/YYYY') {
-      errorsMap['dateOfBirth'] = 'Date of birth is required';
-      isValid = false;
-    }
+    // Removed date of birth validation
 
     // Validate gender
     final genderError =
@@ -65,11 +60,7 @@ class _PersonalInfoFormSectionState
       isValid = false;
     }
 
-    // Validate profile image
-    if (profileState.profileImagePath.isEmpty) {
-      errorsMap['profileImage'] = 'Profile image is required';
-      isValid = false;
-    }
+    // Profile image is now optional, so no validation needed
 
     // Update the errors provider
     ref.read(personalInfoErrorsProvider.notifier).state = errorsMap;
@@ -87,20 +78,20 @@ class _PersonalInfoFormSectionState
 
       if (image != null) {
         ref.read(profileProvider.notifier).updateProfileImagePath(image.path);
-        
+
         // Clear error when file is selected
-        final currentErrors = Map<String, String?>.from(
-            ref.read(personalInfoErrorsProvider));
+        final currentErrors =
+            Map<String, String?>.from(ref.read(personalInfoErrorsProvider));
         currentErrors.remove('profileImage');
         ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
       }
     } catch (e) {
       // Update error state
-      final currentErrors = Map<String, String?>.from(
-          ref.read(personalInfoErrorsProvider));
+      final currentErrors =
+          Map<String, String?>.from(ref.read(personalInfoErrorsProvider));
       currentErrors['profileImage'] = 'Error picking image: $e';
       ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: $e')),
       );
@@ -145,7 +136,8 @@ class _PersonalInfoFormSectionState
                 final currentErrors = Map<String, String?>.from(
                     ref.read(personalInfoErrorsProvider));
                 currentErrors.remove('firstName');
-                ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
+                ref.read(personalInfoErrorsProvider.notifier).state =
+                    currentErrors;
               }
             },
             errorText: errors['firstName'],
@@ -165,7 +157,8 @@ class _PersonalInfoFormSectionState
                 final currentErrors = Map<String, String?>.from(
                     ref.read(personalInfoErrorsProvider));
                 currentErrors.remove('lastName');
-                ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
+                ref.read(personalInfoErrorsProvider.notifier).state =
+                    currentErrors;
               }
             },
             errorText: errors['lastName'],
@@ -173,16 +166,7 @@ class _PersonalInfoFormSectionState
           ),
           const SizedBox(height: 16),
 
-          // Date of Birth
-          buildDatePickerField(
-            context,
-            ref,
-            label: 'Date of Birth',
-            value: profileState.dateOfBirth,
-            errorText: errors['dateOfBirth'],
-            isRequired: true,
-          ),
-          const SizedBox(height: 16),
+          // Date of Birth field removed
 
           // Gender
           buildDropdownField(
@@ -199,7 +183,8 @@ class _PersonalInfoFormSectionState
                 final currentErrors = Map<String, String?>.from(
                     ref.read(personalInfoErrorsProvider));
                 currentErrors.remove('gender');
-                ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
+                ref.read(personalInfoErrorsProvider.notifier).state =
+                    currentErrors;
               }
             },
             errorText: errors['gender'],
@@ -219,7 +204,8 @@ class _PersonalInfoFormSectionState
                 final currentErrors = Map<String, String?>.from(
                     ref.read(personalInfoErrorsProvider));
                 currentErrors.remove('telephone');
-                ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
+                ref.read(personalInfoErrorsProvider.notifier).state =
+                    currentErrors;
               }
             },
             keyboardType: TextInputType.phone,
@@ -228,16 +214,16 @@ class _PersonalInfoFormSectionState
           ),
           const SizedBox(height: 16),
 
-          // Profile Image Upload Field
+          // Profile Image Upload Field (now optional)
           buildFileUploadField(
             context,
-            label: 'Profile Photo',
+            label: 'Profile Photo (Optional)',
             fileName: profileState.profileImagePath.isEmpty
                 ? 'No file chosen'
                 : profileState.profileImagePath.split('/').last,
             onTap: _pickProfileImage,
             errorText: errors['profileImage'],
-            isRequired: true,
+            isRequired: false, // Changed to false
           ),
           const SizedBox(height: 24),
 
@@ -317,7 +303,9 @@ class _PersonalInfoFormSectionState
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: hasError ? ValidationColors.errorRed : Colors.transparent,
+                    color: hasError
+                        ? ValidationColors.errorRed
+                        : Colors.transparent,
                     width: hasError ? 1.0 : 0,
                   ),
                   boxShadow: [
@@ -344,7 +332,8 @@ class _PersonalInfoFormSectionState
                       ),
                     ),
                     if (hasError)
-                      const Icon(Icons.error, color: ValidationColors.errorRed, size: 20),
+                      const Icon(Icons.error,
+                          color: ValidationColors.errorRed, size: 20),
                   ],
                 ),
               ),
@@ -481,133 +470,6 @@ class _PersonalInfoFormSectionState
     );
   }
 
-  Widget buildDatePickerField(
-    BuildContext context,
-    WidgetRef ref, {
-    required String label,
-    required String value,
-    String? errorText,
-    bool isRequired = false,
-  }) {
-    final hasError = errorText != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color.fromARGB(255, 78, 80, 80),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (isRequired)
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(
-                    color: ValidationColors.errorRed,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        InkWell(
-          onTap: () async {
-            final DateTime today = DateTime.now();
-            // Calculate the date 18 years ago from today
-            final DateTime latestValidDOB =
-                DateTime(today.year - 18, today.month, today.day);
-
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate:
-                  latestValidDOB, // Set initial date to exactly 18 years ago
-              firstDate: DateTime(1900),
-              lastDate: latestValidDOB, // Set last date to exactly 18 years ago
-            );
-
-            if (picked != null) {
-              final formattedDate =
-                  "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-              ref
-                  .read(profileProvider.notifier)
-                  .updateDateOfBirth(formattedDate);
-                  
-              // Clear error when selected
-              final currentErrors = Map<String, String?>.from(
-                  ref.read(personalInfoErrorsProvider));
-              currentErrors.remove('dateOfBirth');
-              ref.read(personalInfoErrorsProvider.notifier).state = currentErrors;
-            }
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: hasError ? ValidationColors.errorRed : Colors.transparent,
-                width: hasError ? 1.0 : 0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: hasError
-                        ? ValidationColors.errorRed
-                        : const Color(0xFF5C6BC0),
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                Row(
-                  children: [
-                    if (hasError)
-                      const Icon(Icons.error, color: ValidationColors.errorRed, size: 20),
-                    const SizedBox(width: 8),
-                    const FaIcon(
-                      FontAwesomeIcons.calendar,
-                      size: 18,
-                      color: Color(0xFF5C6BC0),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (hasError)
-          Padding(
-            padding: const EdgeInsets.only(top: 5, left: 5),
-            child: Text(
-              errorText,
-              style: const TextStyle(
-                color: ValidationColors.errorRed,
-                fontSize: 12,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget buildDropdownField(
     BuildContext context, {
     required String label,
@@ -681,7 +543,8 @@ class _PersonalInfoFormSectionState
                     ),
                   ),
                   if (hasError)
-                    const Icon(Icons.error, color: ValidationColors.errorRed, size: 20),
+                    const Icon(Icons.error,
+                        color: ValidationColors.errorRed, size: 20),
                 ],
               ),
               isExpanded: true,

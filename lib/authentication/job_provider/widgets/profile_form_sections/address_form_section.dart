@@ -27,6 +27,14 @@ class _AddressFormSectionState extends ConsumerState<AddressFormSection> {
     final profileState = ref.read(profileProvider);
     final errorsMap = <String, String?>{};
 
+    // Validate country (now using required validation instead of dropdown)
+    final countryError =
+        FormValidation.validateRequired(profileState.country, 'Country');
+    if (countryError != null) {
+      errorsMap['country'] = countryError;
+      isValid = false;
+    }
+
     // Validate province
     final provinceError =
         FormValidation.validateDropdown(profileState.province, 'province');
@@ -106,6 +114,7 @@ class _AddressFormSectionState extends ConsumerState<AddressFormSection> {
         'password': '', // You might need to handle this differently
         'full_name': '${profileState.firstName} ${profileState.lastName}',
         'telephone': profileState.telephone,
+        'country': profileState.country, // Added country field
         'province': profileState.province,
         'district': profileState.district,
         'sector': profileState.sector,
@@ -188,6 +197,27 @@ class _AddressFormSectionState extends ConsumerState<AddressFormSection> {
                 ),
               ),
             ),
+
+          // Country input field (changed from dropdown to text input)
+          buildEditableFormField(
+            context,
+            label: 'Country',
+            value: profileState.country,
+            onChanged: (value) {
+              ref.read(profileProvider.notifier).updateCountry(value);
+              // Clear error when typing
+              if (errors['country'] != null) {
+                final currentErrors = Map<String, String?>.from(
+                    ref.read(addressInfoErrorsProvider));
+                currentErrors.remove('country');
+                ref.read(addressInfoErrorsProvider.notifier).state =
+                    currentErrors;
+              }
+            },
+            errorText: errors['country'],
+            isRequired: true,
+          ),
+          const SizedBox(height: 16),
 
           // Province
           buildDropdownField(

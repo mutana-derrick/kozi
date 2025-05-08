@@ -1,4 +1,3 @@
-// Create a notifier class to handle the state
 // lib/authentication/job_provider/providers/profile_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +8,7 @@ class ProviderProfileState {
   final String lastName;
   final String dateOfBirth;
   final String gender;
+  final String country;  // Added country field
   final String province;
   final String district;
   final String sector;
@@ -18,7 +18,7 @@ class ProviderProfileState {
   final String password;
   final String id;
   final String description;
-  final String profileImagePath; // Add this field
+  final String profileImagePath;
   final int currentStep;
   final bool isSubmitting;
 
@@ -28,6 +28,7 @@ class ProviderProfileState {
     this.lastName = '',
     this.dateOfBirth = 'DD/MM/YYYY',
     this.gender = '',
+    this.country = '',  // Initialize country field
     this.province = '',
     this.district = '',
     this.sector = '',
@@ -37,7 +38,7 @@ class ProviderProfileState {
     this.password = '',
     this.id = '',
     this.description = '',
-    this.profileImagePath = '', // Initialize it as empty
+    this.profileImagePath = '',
     this.currentStep = 0,
     this.isSubmitting = false,
   });
@@ -48,6 +49,7 @@ class ProviderProfileState {
     String? lastName,
     String? dateOfBirth,
     String? gender,
+    String? country,  // Add to copyWith method
     String? province,
     String? district,
     String? sector,
@@ -57,7 +59,7 @@ class ProviderProfileState {
     String? password,
     String? id,
     String? description,
-    String? profileImagePath, // Add it to the copyWith method
+    String? profileImagePath,
     int? currentStep,
     bool? isSubmitting,
   }) {
@@ -67,6 +69,7 @@ class ProviderProfileState {
       lastName: lastName ?? this.lastName,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,
+      country: country ?? this.country,  // Include in return
       province: province ?? this.province,
       district: district ?? this.district,
       sector: sector ?? this.sector,
@@ -76,7 +79,7 @@ class ProviderProfileState {
       password: password ?? this.password,
       id: id ?? this.id,
       description: description ?? this.description,
-      profileImagePath: profileImagePath ?? this.profileImagePath, // Include it in the return
+      profileImagePath: profileImagePath ?? this.profileImagePath,
       currentStep: currentStep ?? this.currentStep,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
@@ -106,6 +109,10 @@ class ProfileNotifier extends StateNotifier<ProviderProfileState> {
   void updateGender(String value) {
     state = state.copyWith(gender: value);
   }
+  
+  void updateCountry(String value) {  // Add method for country
+    state = state.copyWith(country: value);
+  }
 
   void updateProvince(String value) {
     state = state.copyWith(province: value);
@@ -132,8 +139,8 @@ class ProfileNotifier extends StateNotifier<ProviderProfileState> {
   }
 
   void updateProfileImagePath(String value) {
-  state = state.copyWith(profileImagePath: value);
-}
+    state = state.copyWith(profileImagePath: value);
+  }
 
   void updatePassword(String value) {
     state = state.copyWith(password: value);

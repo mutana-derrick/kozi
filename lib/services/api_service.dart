@@ -5,7 +5,7 @@ import 'dart:math' as math;
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.0.100:3000";
+  static const String baseUrl = "http://192.168.0.105:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
