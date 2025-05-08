@@ -48,7 +48,7 @@ class TechnicalFormSection extends ConsumerWidget {
           label: 'Describe worker you need:',
           value: profileState.description,
           onChanged: (value) =>
-              ref.read(profileProvider.notifier).updateWorkerDescription(value),
+              ref.read(profileProvider.notifier).updateDescription(value),
           maxLines: 5,
         ),
         const SizedBox(height: 24),

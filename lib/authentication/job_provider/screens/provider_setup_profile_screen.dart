@@ -1,33 +1,121 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kozi/authentication/job_provider/providers/auth_provider.dart';
 import 'package:kozi/authentication/job_provider/widgets/profile_form_sections/address_form_section.dart';
 import 'package:kozi/authentication/job_provider/widgets/profile_form_sections/personal_info_form_section.dart';
-import 'package:kozi/authentication/job_provider/widgets/profile_form_sections/technical_form_section.dart';
 import 'package:kozi/authentication/job_provider/providers/profile_provider.dart';
 import 'package:kozi/authentication/job_provider/widgets/profile_image_section.dart';
 import 'package:kozi/authentication/job_provider/widgets/progress_bar.dart';
 import 'package:kozi/shared/get_in_touch_screen.dart';
 
-class ProviderSetupProfileScreen extends ConsumerWidget {
+class ProviderSetupProfileScreen extends ConsumerStatefulWidget {
   const ProviderSetupProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const _ProfileScreenContent();
+  ConsumerState<ProviderSetupProfileScreen> createState() => _ProviderSetupProfileScreenState();
+}
+
+class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfileScreen> {
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProviderProfile();
+  }
+
+  Future<void> _loadProviderProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final userId = await apiService.getUserId();
+
+      if (userId == null) {
+        setState(() {
+          _errorMessage = 'User ID not found. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final result = await apiService.getProviderProfile(userId);
+
+      if (result['success'] && result['data'] != null) {
+        final userData = result['data'];
+
+        // Update profile provider with fetched data
+        final profileNotifier = ref.read(profileProvider.notifier);
+        profileNotifier.updateFirstName(userData['first_name'] ?? '');
+        profileNotifier.updateLastName(userData['last_name'] ?? '');
+        profileNotifier.updateGender(userData['gender'] ?? '');
+        profileNotifier.updateTelephone(userData['telephone'] ?? '');
+        profileNotifier.updateDateOfBirth(userData['date_of_birth'] ?? 'DD/MM/YYYY');
+        profileNotifier.updateProvince(userData['province'] ?? '');
+        profileNotifier.updateDistrict(userData['district'] ?? '');
+        profileNotifier.updateSector(userData['sector'] ?? '');
+        profileNotifier.updateCell(userData['cell'] ?? '');
+        profileNotifier.updateVillage(userData['village'] ?? '');
+        profileNotifier.updateDescription(userData['description'] ?? '');
+
+        // If the user has already completed their profile, we can start at a different step
+        if (userData['province'] != null && userData['province'].toString().isNotEmpty) {
+          profileNotifier.goToStep(1); // Go to address page if personal info is filled
+        }
+      } else {
+        setState(() {
+          _errorMessage = result['message'] ?? 'Failed to load profile';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error loading profile: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFEA60A7),
+          elevation: 0,
+          title: const Text(
+            'Profile',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFEA60A7),
+          ),
+        ),
+      );
+    }
+    
+    return _ProfileScreenContent(errorMessage: _errorMessage);
   }
 }
 
 class _ProfileScreenContent extends ConsumerWidget {
-  const _ProfileScreenContent();
+  final String? errorMessage;
+  
+  const _ProfileScreenContent({this.errorMessage});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileProvider);
-    // final screenHeight = MediaQuery.of(context).size.height;
-
-    // Calculate header height (approximation)
-    const headerHeight =
-        220.0; // Pink background + profile image + some padding
+    const headerHeight = 220.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -54,7 +142,7 @@ class _ProfileScreenContent extends ConsumerWidget {
       ),
       body: Stack(
         children: [
-          // Pink curved header background (fixed)
+          // Pink curved header background
           Positioned(
             top: 0,
             left: 0,
@@ -101,16 +189,35 @@ class _ProfileScreenContent extends ConsumerWidget {
                     ),
                   ),
                   SizedBox(height: 24),
-                  // Profile image section (also fixed)
                   ProfileImageSection(),
                 ],
               ),
             ),
           ),
 
+          // Error message if any
+          if (errorMessage != null)
+            Positioned(
+              top: 180,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(
+                  errorMessage!,
+                  style: TextStyle(color: Colors.red[700]),
+                ),
+              ),
+            ),
+
           // Scrollable content that starts below the fixed header
           Positioned(
-            top: headerHeight,
+            top: headerHeight + (errorMessage != null ? 60 : 0),
             left: 0,
             right: 0,
             bottom: 0,
@@ -149,8 +256,6 @@ class _ProfileScreenContent extends ConsumerWidget {
         return const PersonalInfoFormSection();
       case 1:
         return const AddressFormSection();
-      case 2:
-        return const TechnicalFormSection();
       default:
         return const PersonalInfoFormSection();
     }

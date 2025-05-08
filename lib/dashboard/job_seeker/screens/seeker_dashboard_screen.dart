@@ -575,5 +575,5 @@ class SeekerDashboardScreen extends ConsumerWidget {
 
   // Add a constant for the base API URL
   static const String baseApiUrl =
-      'http://192.168.1.83:3000'; // Change this to your actual API base URL
+      'http://192.168.0.100:3000'; // Change this to your actual API base URL
 }

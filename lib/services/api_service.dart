@@ -5,7 +5,7 @@ import 'dart:math' as math;
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.1.83:3000";
+  static const String baseUrl = "http://192.168.0.100:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -122,7 +122,7 @@ class ApiService {
   Future<int?> getCategoryIdByName(String categoryName) async {
     try {
       final response = await _dio.get(
-        '$baseUrl/category-by-name',
+        '$baseUrl/category-by-name_mobile',
         queryParameters: {'name': categoryName},
         options: Options(
           headers: {
@@ -368,13 +368,13 @@ class ApiService {
       }
 
       // Log the request URL and headers
-      print('Making PUT request to: $baseUrl/seeker/update_profile/$userId');
+      print('Making PUT request to: $baseUrl/seeker/update_profile_mobile/$userId');
       print('With token: ${token.substring(0, math.min(10, token.length))}...');
 
       // Add more detailed error handling
       try {
         final response = await _dio.put(
-          '$baseUrl/seeker/update_profile/$userId',
+          '$baseUrl/seeker/update_profile_mobile/$userId',
           data: formData,
           options: Options(
             headers: {
@@ -899,6 +899,312 @@ class ApiService {
     } catch (e) {
       print('Error checking job application status: $e');
       return false;
+    }
+  }
+//=================================================================================================================================================
+//jobprovider's apis consumption
+// Add these methods to your existing ApiService class in lib/services/api_service.dart
+
+// Job Provider Login
+  Future<Map<String, dynamic>> loginJobProvider(
+      String email, String password) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/login',
+        data: {
+          'email': email,
+          'password': password,
+          'role_id': 2, //2 is for job providers
+        },
+      );
+
+      if (response.statusCode == 200 && response.data['token'] != null) {
+        await _storage.write(key: 'auth_token', value: response.data['token']);
+        await _storage.write(key: 'user_email', value: email);
+        final userId = await getUserIdByEmail(email);
+
+        return {
+          'success': true,
+          'message': 'Login successful',
+          'userId': userId,
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Login failed',
+          'data': response.data
+        };
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Wrong email or password',
+        };
+      }
+      print('Login error: $e');
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred',
+      };
+    } catch (e) {
+      print('Login error: $e');
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred',
+      };
+    }
+  }
+
+// Job Provider Signup
+  Future<Map<String, dynamic>> signupJobProvider(
+      Map<String, dynamic> userData) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/provider/signup',
+        data: userData,
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Signup successful',
+          'data': response.data
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Signup failed',
+          'data': response.data
+        };
+      }
+    } catch (e) {
+      print('Signup error: $e');
+      String errorMessage = 'Network error occurred';
+
+      if (e is DioException) {
+        if (e.response?.statusCode == 400) {
+          errorMessage = e.response?.data?['message'] ?? 'Invalid signup data';
+        } else if (e.response?.statusCode == 409) {
+          errorMessage = 'Email already exists';
+        }
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    }
+  }
+
+// Get Provider Profile
+  Future<Map<String, dynamic>> getProviderProfile(String userId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Not authenticated',
+        };
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/provider/view_profile/$userId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to fetch profile',
+        };
+      }
+    } catch (e) {
+      print('Error fetching provider profile: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
+
+// Update Provider Profile
+  Future<Map<String, dynamic>> updateProviderProfile(
+      String userId, Map<String, dynamic> data) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Not authenticated',
+        };
+      }
+
+      // Handle profile image
+      final formData = FormData();
+
+      // Add text fields
+      data.forEach((key, value) {
+        if (key != 'profileImagePath' && value != null) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        }
+      });
+
+      // Add profile image if available
+      if (data['profileImagePath'] != null &&
+          data['profileImagePath'].toString().isNotEmpty) {
+        try {
+          formData.files.add(MapEntry(
+            'picture',
+            await MultipartFile.fromFile(data['profileImagePath'],
+                filename: data['profileImagePath'].split('/').last),
+          ));
+        } catch (e) {
+          print('Error adding profile image file: $e');
+        }
+      }
+
+      final response = await _dio.put(
+        '$baseUrl/provider/update_profile/$userId',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Profile updated successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to update profile',
+        };
+      }
+    } catch (e) {
+      print('Error updating provider profile: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
+
+// Get All Job Seekers
+  Future<List<Map<String, dynamic>>> getAllJobSeekers() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return [];
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/provider/job_seekers',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> rawData = response.data;
+        return rawData.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+
+      return [];
+    } catch (e) {
+      print('Error fetching job seekers: $e');
+      return [];
+    }
+  }
+
+// Get Job Seeker Detail
+  Future<Map<String, dynamic>> getJobSeekerDetail(String seekerId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/provider/job_seeker/$seekerId',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to fetch job seeker details',
+        };
+      }
+    } catch (e) {
+      print('Error fetching job seeker detail: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
+
+// Hire Job Seeker
+  Future<Map<String, dynamic>> hireJobSeeker(
+      Map<String, dynamic> hireData) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await _dio.post(
+        '$baseUrl/provider/hire',
+        data: hireData,
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Job seeker hired successfully',
+          'data': response.data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to hire job seeker',
+        };
+      }
+    } catch (e) {
+      print('Error hiring job seeker: $e');
+
+      String errorMessage = 'An error occurred';
+      if (e is DioException && e.response?.statusCode == 409) {
+        errorMessage = 'You have already hired this job seeker';
+      }
+
+      return {
+        'success': false,
+        'message': errorMessage,
+      };
     }
   }
 
