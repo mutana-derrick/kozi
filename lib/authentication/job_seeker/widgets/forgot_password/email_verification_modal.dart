@@ -1,20 +1,22 @@
-// lib/authentication/job_seeker/widgets/forgot_password/email_verification_modal.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/authentication/job_seeker/widgets/forgot_password/signup_otp_verification_modal.dart';
 import 'package:kozi/utils/form_validation.dart';
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 
-class ForgotPasswordModal extends StatefulWidget {
+class ForgotPasswordModal extends ConsumerStatefulWidget {
   const ForgotPasswordModal({super.key});
 
   @override
-  State<ForgotPasswordModal> createState() => _ForgotPasswordModalState();
+  ConsumerState<ForgotPasswordModal> createState() => _ForgotPasswordModalState();
 }
 
-class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
+class _ForgotPasswordModalState extends ConsumerState<ForgotPasswordModal> {
   final TextEditingController _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _emailError;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -34,7 +36,7 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
     }
   }
 
-  // Simulate sending the verification code
+  // Send verification code using API
   Future<void> _sendVerificationCode() async {
     if (!_validateEmail()) {
       return;
@@ -42,21 +44,37 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
 
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
-    // Simulate API call delay
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Use API service to send forgot password request
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.forgotPassword(_emailController.text);
 
-    setState(() {
-      _isLoading = false;
-    });
+      if (result['success']) {
+        if (mounted) {
+          // Dismiss the current modal
+          Navigator.pop(context);
 
-    if (mounted) {
-      // Dismiss the current modal
-      Navigator.pop(context);
-
-      // Show OTP verification modal
-      _showOtpVerificationModal(context, _emailController.text);
+          // Show OTP verification modal
+          _showOtpVerificationModal(context, _emailController.text);
+        }
+      } else {
+        // Show error message
+        setState(() {
+          _errorMessage = result['message'] ?? 'Failed to send verification code.';
+        });
+      }
+    } catch (e) {
+      // Handle any errors
+      setState(() {
+        _errorMessage = 'An error occurred: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -68,7 +86,10 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SignupOtpVerificationModal(email: email),
+      builder: (context) => SignupOtpVerificationModal(
+        email: email,
+        forgotPassword: true, // Flag to indicate this is for password reset
+      ),
     );
   }
 
@@ -171,6 +192,27 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
                     style: const TextStyle(
                       color: ValidationColors.errorRed,
                       fontSize: 12,
+                    ),
+                  ),
+                ),
+
+              // Error message if any
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: ValidationColors.errorRedLight,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: ValidationColors.errorRedBorder),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: ValidationColors.errorRed,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),

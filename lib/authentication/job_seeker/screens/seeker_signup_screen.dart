@@ -146,20 +146,9 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
             barrierDismissible: false,
             builder: (context) => OtpVerificationPopup(
               email: _emailController.text,
-              onVerified: (otp) {
-                // Close the dialog when verified
-                Navigator.of(context).pop();
-                
-                // Show success message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Account created successfully! You can now login'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                
-                // Navigate to login screen
-                context.push('/seekerlogin');
+              onVerified: (otp) async {
+                // Process OTP verification without closing the dialog
+                return await _verifyOtp(otp, context);
               },
             ),
           );
@@ -174,6 +163,48 @@ class _SignUpScreenState extends ConsumerState<SeekerSignUpScreen> {
       setState(() {
         _errorMessage = 'An unexpected error occurred: $e';
       });
+    } finally {
+      setState(() {
+        _isProcessing = false;
+      });
+    }
+  }
+
+  Future<String?> _verifyOtp(String otp, BuildContext dialogContext) async {
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Use the API service to verify OTP
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.verifyOtp(_emailController.text, otp);
+
+      if (result['success']) {
+        // OTP verification successful - close the dialog and proceed
+        Navigator.of(dialogContext).pop();
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created and verified successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to login
+          context.push('/seekerlogin');
+        }
+        return null; // No error
+      } else {
+        // OTP verification failed - return error to the OTP dialog
+        return result['message'] ?? 'OTP verification failed';
+      }
+    } catch (e) {
+      // Return error message to display in the OTP dialog
+      return 'An unexpected error occurred: $e';
     } finally {
       setState(() {
         _isProcessing = false;

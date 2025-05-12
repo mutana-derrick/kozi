@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kozi/authentication/job_seeker/widgets/forgot_password/reset_passsword_modal.dart';
-
+import 'package:kozi/authentication/job_provider/widgets/forgot_password/reset_passsword_modal.dart';
 
 class SignupOtpVerificationModal extends StatefulWidget {
   final String email;
@@ -13,7 +12,8 @@ class SignupOtpVerificationModal extends StatefulWidget {
   });
 
   @override
-  State<SignupOtpVerificationModal> createState() => _OtpVerificationModalState();
+  State<SignupOtpVerificationModal> createState() =>
+      _OtpVerificationModalState();
 }
 
 class _OtpVerificationModalState extends State<SignupOtpVerificationModal> {
@@ -157,7 +157,7 @@ class _OtpVerificationModalState extends State<SignupOtpVerificationModal> {
                 ),
               ],
             ),
-            
+
             const Text(
               'OTP Verification',
               style: TextStyle(
@@ -165,9 +165,9 @@ class _OtpVerificationModalState extends State<SignupOtpVerificationModal> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             Text(
               'Please enter the verification code sent to ${widget.email}',
               style: TextStyle(
@@ -175,62 +175,62 @@ class _OtpVerificationModalState extends State<SignupOtpVerificationModal> {
                 color: Colors.grey[600],
               ),
             ),
-            
+
             const SizedBox(height: 24),
 
             // OTP input fields
-            LayoutBuilder(
-              builder: (context, constraints) {
-                double fieldWidth = (constraints.maxWidth - 50) / 6;
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(
-                    6,
-                    (index) => SizedBox(
-                      width: fieldWidth,
-                      height: 50,
-                      child: TextField(
-                        controller: _controllers[index],
-                        focusNode: _focusNodes[index],
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        maxLength: 1,
-                        decoration: InputDecoration(
-                          counterText: '',
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFEA60A7), width: 2),
-                          ),
+            LayoutBuilder(builder: (context, constraints) {
+              double fieldWidth = (constraints.maxWidth - 50) / 6;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(
+                  6,
+                  (index) => SizedBox(
+                    width: fieldWidth,
+                    height: 50,
+                    child: TextField(
+                      controller: _controllers[index],
+                      focusNode: _focusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      maxLength: 1,
+                      decoration: InputDecoration(
+                        counterText: '',
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(5),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        onChanged: (value) {
-                          if (value.isNotEmpty && index < 5) {
-                            _focusNodes[index + 1].requestFocus();
-                          } else if (value.isEmpty && index > 0) {
-                            _focusNodes[index - 1].requestFocus();
-                          }
-
-                          // If all fields are filled, auto-verify
-                          if (index == 5 && value.isNotEmpty) {
-                            String otp = _controllers.map((controller) => controller.text).join();
-                            if (otp.length == 6) {
-                              _verifyOtp();
-                            }
-                          }
-                        },
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(5),
+                          borderSide: const BorderSide(
+                              color: Color(0xFFEA60A7), width: 2),
+                        ),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (value) {
+                        if (value.isNotEmpty && index < 5) {
+                          _focusNodes[index + 1].requestFocus();
+                        } else if (value.isEmpty && index > 0) {
+                          _focusNodes[index - 1].requestFocus();
+                        }
+
+                        // If all fields are filled, auto-verify
+                        if (index == 5 && value.isNotEmpty) {
+                          String otp = _controllers
+                              .map((controller) => controller.text)
+                              .join();
+                          if (otp.length == 6) {
+                            _verifyOtp();
+                          }
+                        }
+                      },
                     ),
                   ),
-                );
-              }
-            ),
+                ),
+              );
+            }),
 
             const SizedBox(height: 24),
 
@@ -295,7 +295,7 @@ class _OtpVerificationModalState extends State<SignupOtpVerificationModal> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
           ],
         ),

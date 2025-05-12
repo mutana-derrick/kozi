@@ -25,12 +25,15 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _telephoneController =
+      TextEditingController(); // Added telephone controller
 
   bool _isLoading = false;
   String? _emailError;
   String? _firstNameError;
   String? _lastNameError;
   String? _passwordError;
+  String? _telephoneError; // Added telephone error
   String? _errorMessage;
 
   @override
@@ -39,6 +42,7 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _passwordController.dispose();
+    _telephoneController.dispose(); // Dispose telephone controller
     super.dispose();
   }
 
@@ -75,6 +79,16 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
       setState(() => _lastNameError = null);
     }
 
+    // Validate telephone
+    final telephoneError =
+        FormValidation.validatePhone(_telephoneController.text);
+    if (telephoneError != null) {
+      setState(() => _telephoneError = telephoneError);
+      isValid = false;
+    } else {
+      setState(() => _telephoneError = null);
+    }
+
     // Validate password
     final passwordError =
         FormValidation.validatePassword(_passwordController.text);
@@ -104,58 +118,49 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
       return; // Stop if validation fails
     }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => OtpVerificationPopup(
-        email: _emailController.text,
-        onVerified: (otp) {
-          // Process the OTP verification
-          Navigator.of(context).pop(); // Close the dialog
-          _processSignUp(otp);
-        },
-      ),
-    );
+    // Start the signup process which will send OTP
+    _initiateSignup();
   }
 
-  Future<void> _processSignUp(String otp) async {
+  Future<void> _initiateSignup() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Prepare signup data
+      // Prepare signup data to send to API
       final signupData = {
         'email': _emailController.text,
         'first_name': _firstNameController.text,
         'last_name': _lastNameController.text,
+        'telephone': _telephoneController.text, // Include telephone
         'password': _passwordController.text,
         'role_id': 2, // Assuming 2 is for job providers
-        'gender': 'Other', // Default value, can be updated later
-        'full_name': '${_firstNameController.text} ${_lastNameController.text}',
-        'picture': '', // Can be updated later
-        'verifiedEmail': true, // Since we verified with OTP
-        'token': otp,
-        'verification_code': otp,
       };
 
-      // Use the API service to register
+      // Use the API service to register and send OTP
       final apiService = ref.read(apiServiceProvider);
       final result = await apiService.signupJobProvider(signupData);
 
+      setState(() {
+        _isLoading = false;
+      });
+
       if (result['success']) {
-        // Show success message
+        // The API has sent the OTP, now show the verification popup
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully!'),
-              backgroundColor: Colors.green,
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => OtpVerificationPopup(
+              email: _emailController.text,
+              onVerified: (otp) async {
+                // Process the OTP verification and return error message if any
+                return await _verifyOtp(otp, context);
+              },
             ),
           );
-
-          // Navigate to login
-          context.push('/providerlogin');
         }
       } else {
         // Show error
@@ -165,13 +170,57 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
       }
     } catch (e) {
       setState(() {
+        _isLoading = false;
         _errorMessage = 'An unexpected error occurred: $e';
       });
+    }
+  }
+
+  Future _verifyOtp(String otp, BuildContext dialogContext) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Use the API service to verify OTP
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.verifyOtp(_emailController.text, otp);
+
+      if (result['success']) {
+        // OTP verification successful - close the dialog and proceed
+        Navigator.of(dialogContext).pop();
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created and verified successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to login
+          context.push('/providerlogin');
+        }
+      } else {
+        // OTP verification failed - return error to the OTP dialog
+        // Now we're passing the error message to the OTP popup through a callback
+        return result['message'] ?? 'OTP verification failed';
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // Return error message to display in the OTP dialog
+      return 'An unexpected error occurred: $e';
     } finally {
+      // Always update loading state
       setState(() {
         _isLoading = false;
       });
     }
+    return null; // Success - no error
   }
 
   @override
@@ -443,6 +492,67 @@ class _SignUpScreenState extends ConsumerState<ProviderSignUpScreen> {
                             padding: const EdgeInsets.only(top: 5, left: 5),
                             child: Text(
                               _lastNameError!,
+                              style: const TextStyle(
+                                color: ValidationColors.errorRed,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 16),
+
+                        // Telephone Field with validation (new)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: _telephoneError != null
+                                  ? ValidationColors.errorRed
+                                  : Colors.grey.shade300,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _telephoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Telephone *',
+                              hintStyle: TextStyle(
+                                color: _telephoneError != null
+                                    ? ValidationColors.errorRed
+                                    : Colors.black45,
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              suffixIcon: _telephoneError != null
+                                  ? const Icon(Icons.error,
+                                      color: ValidationColors.errorRed)
+                                  : null,
+                            ),
+                            onChanged: (value) {
+                              if (_telephoneError != null) {
+                                setState(() => _telephoneError = null);
+                              }
+                            },
+                          ),
+                        ),
+
+                        if (_telephoneError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5, left: 5),
+                            child: Text(
+                              _telephoneError!,
                               style: const TextStyle(
                                 color: ValidationColors.errorRed,
                                 fontSize: 12,

@@ -5,11 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/utils/form_validation.dart';
 import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
-//import 'package:kozi/services/api_service.dart';
 
 class OtpVerificationPopup extends ConsumerStatefulWidget {
   final String email;
-  final Function(String) onVerified;
+  // Changed callback type to return Future<String?> where null means success 
+  // and non-null is an error message
+  final Future<String?> Function(String) onVerified;
 
   const OtpVerificationPopup({
     super.key,
@@ -101,27 +102,47 @@ class _OtpVerificationPopupState extends ConsumerState<OtpVerificationPopup> {
     try {
       String otp = _controllers.map((controller) => controller.text).join();
       
-      // Use the API service to verify the OTP
-      final apiService = ref.read(apiServiceProvider);
-      final result = await apiService.verifyOtp(widget.email, otp);
+      // Call the onVerified callback and wait for error (if any)
+      final errorMessage = await widget.onVerified(otp);
       
-      if (result['success']) {
-        // OTP verification successful
-        widget.onVerified(otp);
-      } else {
-        // Show error message
-        setState(() {
-          _errorMessage = result['message'] ?? 'Invalid OTP. Please try again.';
-        });
+      if (mounted) {
+        if (errorMessage != null) {
+          // Error occurred - show error message and allow retry
+          setState(() {
+            _isVerifying = false;
+            _errorMessage = errorMessage;
+            
+            // Reset OTP fields to allow retry
+            for (var controller in _controllers) {
+              controller.clear();
+            }
+            if (_focusNodes.isNotEmpty) {
+              _focusNodes[0].requestFocus();
+            }
+            
+            // Reset error state for all fields
+            for (int i = 0; i < _hasError.length; i++) {
+              _hasError[i] = false;
+            }
+          });
+        }
+        // If no error message is returned, the dialog will be closed by the parent
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'An error occurred during verification: $e';
-      });
-    } finally {
-      setState(() {
-        _isVerifying = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+          _errorMessage = 'Error verifying OTP: $e';
+          
+          // Reset fields for retry on error
+          for (var controller in _controllers) {
+            controller.clear();
+          }
+          if (_focusNodes.isNotEmpty) {
+            _focusNodes[0].requestFocus();
+          }
+        });
+      }
     }
   }
 
@@ -151,6 +172,11 @@ class _OtpVerificationPopupState extends ConsumerState<OtpVerificationPopup> {
         // Clear all fields
         for (var controller in _controllers) {
           controller.clear();
+        }
+        
+        // Reset error states
+        for (int i = 0; i < _hasError.length; i++) {
+          _hasError[i] = false;
         }
         
         // Set focus to first field
