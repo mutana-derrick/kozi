@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/dashboard/job_provider/models/service_category.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/worker_details_screen.dart';
+import 'package:kozi/dashboard/job_provider/providers/providers.dart';
 
 class CategoryWorkersScreen extends ConsumerStatefulWidget {
   final ServiceCategory category;
@@ -20,81 +21,6 @@ class CategoryWorkersScreen extends ConsumerStatefulWidget {
 class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  List<Worker> filteredWorkers = [];
-
-  // For demo, we'll create mock data for workers
-  final List<Worker> categoryWorkers = [
-    Worker(
-      id: '1',
-      name: 'Kaneza Andrew',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker1.png',
-      rating: 4.5,
-    ),
-    Worker(
-      id: '2',
-      name: 'Muyor Alexia',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker2.png',
-      rating: 5.0,
-    ),
-    Worker(
-      id: '3',
-      name: 'Gahima Dorian',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker3.png',
-      rating: 4.8,
-    ),
-    Worker(
-      id: '4',
-      name: 'Truluck Nik',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker4.png',
-      rating: 4.2,
-    ),
-    Worker(
-      id: '5',
-      name: 'Muhoracyeye',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker5.png',
-      rating: 4.7,
-    ),
-    Worker(
-      id: '6',
-      name: 'Truluck Nik',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker4.png',
-      rating: 5.0,
-    ),
-    Worker(
-      id: '7',
-      name: 'Edward Ndekwe',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker3.png',
-      rating: 4.3,
-    ),
-    Worker(
-      id: '8',
-      name: 'Thierry Alain',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker6.png',
-      rating: 4.6,
-    ),
-    Worker(
-      id: '9',
-      name: 'Muneza Derrick',
-      specialty: 'Mover Specialist',
-      imageUrl: 'assets/worker3.png',
-      rating: 4.9,
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize filtered workers with all workers
-    filteredWorkers = List.from(categoryWorkers);
-  }
 
   @override
   void dispose() {
@@ -102,12 +28,26 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
     super.dispose();
   }
 
+  // Convert API worker data to Worker model
+  Worker _convertToWorkerModel(dynamic workerData) {
+    return Worker(
+      id: workerData['users_id'].toString(),
+      name: workerData['full_name'] ?? '${workerData['first_name']} ${workerData['last_name']}',
+      specialty: widget.category.name,
+      // Use a default image if image is not available
+      imageUrl: workerData['image'] != null && workerData['image'].isNotEmpty
+          ? 'uploads/profile/${workerData['image']}'
+          : 'assets/default_profile.png',
+      rating: 4.0, // Default rating since it's not available in the API
+    );
+  }
+
   // Filter workers based on search query
-  void _filterWorkers() {
+  List<Worker> _getFilteredWorkers(List<Worker> allWorkers) {
     if (_searchQuery.isEmpty) {
-      filteredWorkers = List.from(categoryWorkers);
+      return allWorkers;
     } else {
-      filteredWorkers = categoryWorkers.where((worker) {
+      return allWorkers.where((worker) {
         return worker.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             worker.specialty.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
@@ -116,6 +56,8 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final workersAsync = ref.watch(categoryWorkersProvider(widget.category.id));
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -172,7 +114,6 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
                       onChanged: (value) {
                         setState(() {
                           _searchQuery = value;
-                          _filterWorkers();
                         });
                       },
                     ),
@@ -183,7 +124,6 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
                         setState(() {
                           _searchController.clear();
                           _searchQuery = '';
-                          _filterWorkers();
                         });
                       },
                       child: const Icon(Icons.close, color: Colors.grey),
@@ -195,128 +135,179 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
 
           // Content
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Workers count banner
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.pink[400],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${filteredWorkers.length}+',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Workers found matching ${widget.category.name}${_searchQuery.isNotEmpty ? ' and "${_searchQuery}"' : ''}.',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'View sample Worker profiles below, or create a FREE Get Workers account to access and review real Worker profiles.',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            child: workersAsync.when(
+              data: (workersData) {
+                // Convert API data to Worker models
+                final List<Worker> workers = workersData.map<Worker>((worker) {
+                  return _convertToWorkerModel(worker);
+                }).toList();
 
-                  // Popular Workers section header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _searchQuery.isEmpty
-                              ? 'Popular ${widget.category.name}'
-                              : 'Search Results',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                final filteredWorkers = _getFilteredWorkers(workers);
+
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Workers count banner
+                      Container(
+                        margin: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.pink[400],
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        if (_searchQuery.isNotEmpty)
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                                _filterWorkers();
-                              });
-                            },
-                            child: const Text(
-                              'Clear Search',
-                              style: TextStyle(
-                                color: Colors.pink,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${filteredWorkers.length}+',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Workers found matching ${widget.category.name}${_searchQuery.isNotEmpty ? ' and "${_searchQuery}"' : ''}.',
+                              style: const TextStyle(
+                                color: Colors.white,
                                 fontSize: 14,
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  // No results message
-                  if (filteredWorkers.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(Icons.search_off,
-                                size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No workers found matching your search.',
+                            const SizedBox(height: 8),
+                            const Text(
+                              'View Worker profiles below, or create a FREE Get Workers account to access and review real Worker profiles.',
                               style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
+                                color: Colors.white70,
+                                fontSize: 12,
                               ),
-                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       ),
-                    ),
 
-                  // Grid of workers
-                  if (filteredWorkers.isNotEmpty)
-                    GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 0.7,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 16,
+                      // Popular Workers section header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'Popular ${widget.category.name}'
+                                  : 'Search Results',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (_searchQuery.isNotEmpty)
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  });
+                                },
+                                child: const Text(
+                                  'Clear Search',
+                                  style: TextStyle(
+                                    color: Colors.pink,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                      itemCount: filteredWorkers.length,
-                      itemBuilder: (context, index) {
-                        final worker = filteredWorkers[index];
-                        return _buildWorkerCard(context, worker);
-                      },
+
+                      // No results message
+                      if (filteredWorkers.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.search_off,
+                                    size: 64, color: Colors.grey),
+                                SizedBox(height: 16),
+                                Text(
+                                  'No workers found matching your search.',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // Grid of workers
+                      if (filteredWorkers.isNotEmpty)
+                        GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 0.7,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: filteredWorkers.length,
+                          itemBuilder: (context, index) {
+                            final worker = filteredWorkers[index];
+                            return _buildWorkerCard(context, worker);
+                          },
+                        ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+                ),
+              ),
+              error: (error, stack) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load workers',
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString(),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.refresh(categoryWorkersProvider(widget.category.id)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.pink[400],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text('Try Again'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -330,11 +321,11 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
       onTap: () {
         // Navigate to worker details page
         Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => WorkerDetailScreen(worker: worker),
-          ),
-        );
+  context,
+  MaterialPageRoute(
+    builder: (context) => WorkerDetailScreen(workerId: worker.id),
+  ),
+);
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -343,18 +334,31 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                worker.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.person, size: 40, color: Colors.grey),
+              child: worker.imageUrl.startsWith('assets/')
+                  ? Image.asset(
+                      worker.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.person, size: 40, color: Colors.grey),
+                          ),
+                        );
+                      },
+                    )
+                  : Image.network(
+                      'http://192.168.0.105:3000/${worker.imageUrl}',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.person, size: 40, color: Colors.grey),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ),
           const SizedBox(height: 8),

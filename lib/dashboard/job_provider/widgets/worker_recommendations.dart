@@ -6,13 +6,34 @@ import '../models/worker.dart';
 import '../providers/providers.dart';
 import 'shared_widgets.dart';
 
+// New provider for dynamic workers
+final workersFutureProvider = FutureProvider<List<Worker>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  try {
+    // Fetch workers from API
+    final response = await apiService.fetchWorkers();
+    return response
+        .map((json) => Worker(
+              id: json['id'].toString(),
+              name: json['full_name'] ?? json['name'],
+              specialty: json['category'] ?? 'Unspecified',
+              imageUrl: json['image'] ?? 'assets/default_worker.png',
+              rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+            ))
+        .toList();
+  } catch (e) {
+    print('Error fetching workers: $e');
+    return [];
+  }
+});
+
 // widgets/worker_recommendations.dart
 class WorkerRecommendations extends ConsumerWidget {
   const WorkerRecommendations({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workers = ref.watch(workersProvider);
+    final workersAsync = ref.watch(workersFutureProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = screenWidth > 600;
 
@@ -20,17 +41,31 @@ class WorkerRecommendations extends ConsumerWidget {
       children: [
         SharedWidgets.buildSectionHeader('Worker Recommendations', context),
         const SizedBox(height: 15),
-        SizedBox(
-          // Increased height to accommodate potential text scaling
-          height: isLargeScreen ? 210 : 190,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: workers.length,
-            itemBuilder: (context, index) {
-              final worker = workers[index];
-              final cardWidth = isLargeScreen ? 160.0 : 120.0;
-              return _buildWorkerCard(worker, cardWidth: cardWidth);
-            },
+        workersAsync.when(
+          data: (workers) {
+            // Limit to maximum 3 workers
+            final limitedWorkers = workers.take(3).toList();
+
+            return SizedBox(
+              height: isLargeScreen ? 210 : 190,
+              child: limitedWorkers.isEmpty
+                  ? const Center(child: Text('No workers found'))
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: limitedWorkers.length,
+                      itemBuilder: (context, index) {
+                        final worker = limitedWorkers[index];
+                        final cardWidth = isLargeScreen ? 160.0 : 120.0;
+                        return _buildWorkerCard(worker, cardWidth: cardWidth);
+                      },
+                    ),
+            );
+          },
+          loading: () => Center(
+            child: CircularProgressIndicator(color: Colors.pink[300]),
+          ),
+          error: (error, stack) => Center(
+            child: Text('Error loading workers: $error'),
           ),
         ),
       ],

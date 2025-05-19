@@ -19,7 +19,7 @@ class ProviderDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(statsProvider);
-    final userName = ref.watch(userNameProvider);
+    // final userName = ref.watch(userNameProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -71,9 +71,9 @@ class ProviderDashboardScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 10),
-                        Text(
-                          'Hello, $userName Need a worker today?',
-                          style: const TextStyle(
+                        const Text(
+                          'Hello! Need a worker today?',
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
                           ),
@@ -83,43 +83,65 @@ class ProviderDashboardScreen extends ConsumerWidget {
                         // Stats cards
                         SizedBox(
                           height: 80,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                          child: stats.when(
+                            data: (statsData) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 1,
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  _buildStatCard(
+                                    count: statsData['workers'] ?? 0,
+                                    label: 'Workers',
+                                    color: Colors.pink[100]!,
+                                    iconData: FontAwesomeIcons.users,
+                                  ),
+                                  _buildStatCard(
+                                    count: statsData['employers'] ?? 0,
+                                    label: 'Employers',
+                                    color: Colors.pink[100]!,
+                                    iconData: FontAwesomeIcons.userTie,
+                                  ),
+                                  _buildStatCard(
+                                    count: statsData['companies'] ?? 0,
+                                    label: 'Companies',
+                                    color: Colors.pink[100]!,
+                                    iconData: FontAwesomeIcons.building,
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildStatCard(
-                                  count: stats['workers'] ?? 0,
-                                  label: 'Workers',
-                                  color: Colors.pink[100]!,
-                                  iconData: FontAwesomeIcons.users,
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.pink,
+                              ),
+                            ),
+                            error: (error, stack) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Unable to load stats',
+                                  style: TextStyle(color: Colors.red),
                                 ),
-                                _buildStatCard(
-                                  count: stats['employers'] ?? 0,
-                                  label: 'Employers',
-                                  color: Colors.pink[100]!,
-                                  iconData: FontAwesomeIcons.userTie,
-                                ),
-                                _buildStatCard(
-                                  count: stats['companies'] ?? 0,
-                                  label: 'Companies',
-                                  color: Colors.pink[100]!,
-                                  iconData: FontAwesomeIcons.building,
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -199,9 +221,7 @@ class ProviderDashboardScreen extends ConsumerWidget {
                                     vertical: 12,
                                   ),
                                 ),
-                                child: const Text(
-                                  'Request An Estimate'
-                                  ),
+                                child: const Text('Request An Estimate'),
                               ),
                             ],
                           ),
@@ -272,5 +292,3 @@ class ProviderDashboardScreen extends ConsumerWidget {
     );
   }
 }
-
-

@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:math' as math;
+
+import 'package:kozi/dashboard/job_provider/models/service_category.dart';
 
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.0.105:3000";
+  static const String baseUrl = "http://192.168.0.104:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -1404,6 +1408,190 @@ class ApiService {
         'success': false,
         'message': errorMessage,
       };
+    }
+  }
+
+  Future<int> getSeekersCount() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      final response = await _dio.get(
+        '$baseUrl/seekers/count',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['count'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      print('Error fetching seekers count: $e');
+      return 0;
+    }
+  }
+
+  Future<int> getProvidersCount() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      final response = await _dio.get(
+        '$baseUrl/providers/count',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['count'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      print('Error fetching providers count: $e');
+      return 0;
+    }
+  }
+
+  // Future<List<dynamic>> fetchCategories() async {
+  //   final response = await _dio.get('$baseUrl/name_and_id');
+  //   return response.data;
+  // }
+
+  // method to fetch worker details by ID
+  Future<List<dynamic>> fetchWorkers() async {
+    final response = await _dio.get('$baseUrl/provider/job_seekers');
+    return response.data;
+  }
+
+  // method to fetch worker details by ID
+  Future<Map<String, dynamic>> getWorkerById(String workerId) async {
+    try {
+      final response = await _dio.get('$baseUrl/provider/job_seeker/$workerId');
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else if (response.statusCode == 404) {
+        throw Exception('Worker not found');
+      } else {
+        throw Exception('Failed to load worker details');
+      }
+    } on DioException catch (e) {
+      print('Error fetching worker details: $e');
+      throw Exception('Failed to load worker details: ${e.message}');
+    } catch (e) {
+      print('Unexpected error fetching worker details: $e');
+      throw Exception('An unexpected error occurred');
+    }
+  }
+
+  Future<List<ServiceCategory>> fetchCategories() async {
+    try {
+      final response = await _dio.get('$baseUrl/name_and_id');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> categoriesData = response.data;
+
+        return categoriesData.map((category) {
+          return ServiceCategory(
+            id: category['id'].toString(),
+            name: category['name'],
+            icon: _mapIconToCategory(category['name']),
+          );
+        }).toList();
+      } else {
+        throw Exception('Failed to load categories');
+      }
+    } on DioException catch (e) {
+      print('Error fetching categories: $e');
+      throw Exception('Failed to load categories: ${e.message}');
+    } catch (e) {
+      print('Unexpected error fetching categories: $e');
+      throw Exception('An unexpected error occurred');
+    }
+  }
+
+// Fetch workers by category ID
+  Future<List<dynamic>> fetchWorkersByCategory(String categoryId) async {
+    try {
+      final response =
+          await _dio.get('$baseUrl/select_user_based_on_category/$categoryId');
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else if (response.statusCode == 404) {
+        // No workers found for this category
+        return [];
+      } else {
+        throw Exception('Failed to load workers');
+      }
+    } on DioException catch (e) {
+      print('Error fetching workers by category: $e');
+      throw Exception('Failed to load workers: ${e.message}');
+    } catch (e) {
+      print('Unexpected error fetching workers: $e');
+      throw Exception('An unexpected error occurred');
+    }
+  }
+  // Method to hire a worker
+  Future<Map<String, dynamic>> hireWorker({
+    required String jobSeekerId,
+    required String jobProviderId,
+    required String providerFirstName,
+    required String providerLastName,
+    required String seekerFirstName,
+    required String seekerLastName,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/provider/hire',
+        data: {
+          'job_seeker_id': jobSeekerId,
+          'job_provider_id': jobProviderId,
+          'provider_first_name': providerFirstName,
+          'provider_last_name': providerLastName,
+          'seeker_first_name': seekerFirstName,
+          'seeker_last_name': seekerLastName,
+        },
+      );
+      
+      if (response.statusCode == 201) {
+        return response.data;
+      } else {
+        throw Exception('Failed to hire worker');
+      }
+    } on DioException catch (e) {
+      print('Error hiring worker: $e');
+      throw Exception('Failed to hire worker: ${e.message}');
+    } catch (e) {
+      print('Unexpected error hiring worker: $e');
+      throw Exception('An unexpected error occurred');
+    }
+  }
+
+// Helper function to map category names to icons
+  IconData _mapIconToCategory(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'home service':
+        return FontAwesomeIcons.house;
+      case 'office cleaning':
+      case 'pool cleaners':
+        return FontAwesomeIcons.broom;
+      case 'baby sitters':
+      case 'babysitting':
+        return FontAwesomeIcons.baby;
+      case 'chefs service':
+        return FontAwesomeIcons.utensils;
+      case 'movers':
+        return FontAwesomeIcons.truckMoving;
+      case 'drivers':
+        return FontAwesomeIcons.car;
+      case 'gardeners':
+        return FontAwesomeIcons.leaf;
+      case 'electricians':
+        return FontAwesomeIcons.plug;
+      case 'plumbers':
+        return FontAwesomeIcons.faucet;
+      default:
+        return FontAwesomeIcons.layerGroup;
     }
   }
 

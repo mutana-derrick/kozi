@@ -1,53 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kozi/authentication/job_provider/providers/auth_provider.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
+import 'package:kozi/services/api_service.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/work_hiring_screen.dart';
 
-class WorkerDetailScreen extends StatefulWidget {
-  final Worker worker;
+class WorkerDetailScreen extends ConsumerStatefulWidget {
+  final String workerId;
 
-  const WorkerDetailScreen({
-    super.key,
-    required this.worker,
-  });
+  const WorkerDetailScreen({super.key, required this.workerId});
 
   @override
-  State<WorkerDetailScreen> createState() => _WorkerDetailScreenState();
+  ConsumerState<WorkerDetailScreen> createState() => _WorkerDetailScreenState();
 }
 
-class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
+class _WorkerDetailScreenState extends ConsumerState<WorkerDetailScreen> {
+  Map<String, dynamic>? _workerData;
+  List<dynamic> _otherWorkers = [];
+  bool _isLoading = true;
+  String? _error;
   bool _isQuickSupportExpanded = false;
 
   @override
+  void initState() {
+    super.initState();
+    _fetchWorkerDetails();
+  }
+
+  Future<void> _fetchWorkerDetails() async {
+    final apiService = ref.read(apiServiceProvider);
+
+    try {
+      final data = await apiService.getWorkerById(widget.workerId);
+      _workerData = data;
+
+      // Fetch other workers in same category
+      if (data['categories_id'] != null) {
+        final allInCategory = await apiService.fetchWorkersByCategory(
+          data['categories_id'].toString(),
+        );
+        _otherWorkers = allInCategory.where((w) {
+          final id = w['users_id'].toString();
+          return id != widget.workerId;
+        }).toList();
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Worker Profile")),
+        body: Center(child: Text("Error: $_error")),
+      );
+    }
+
+    final data = _workerData!;
+    final String name =
+        data['full_name'] ?? '${data['first_name']} ${data['last_name']}';
+    final String bio =
+        data['bio'] ?? 'Specialist in housekeeping and cleaning.';
+    final String imageUrl = data['image'] != null
+        ? '${ApiService.baseUrl}/uploads/profile/${data['image']}'
+        : 'https://via.placeholder.com/150';
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.grey[50],
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Worker Profile',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: const Text('Worker Profile',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Worker profile card
+            // Worker card
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
@@ -55,114 +104,53 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
+                  BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5)
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Worker header with image and basic info
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Worker image
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          widget.worker.imageUrl,
+                        child: Image.network(
+                          imageUrl,
                           width: 90,
                           height: 90,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 90,
-                              height: 90,
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Icon(Icons.person,
-                                    size: 40, color: Colors.grey),
-                              ),
-                            );
-                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 90,
+                            height: 90,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.person, size: 40),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
-
-                      // Worker name and info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Text(
-                                  widget.worker.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.verified,
-                                  color: Colors.pink,
-                                  size: 16,
-                                ),
-                              ],
-                            ),
+                            Text(name,
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 8),
-                            const Text(
-                              'I am 24 years old, I Live in Kigali and Specialist in Moving Material housekeeping and cleaning.....',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
+                            Text(bio,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.grey)),
                           ],
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Worker details in bullet points
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildBulletPoint('2 years of experience'),
-                      _buildBulletPoint('Level of school: S5'),
-                      _buildBulletPoint('Kigali City'),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Rating stars
-                  Row(
-                    children: [
-                      ...List.generate(5, (index) {
-                        return Icon(
-                          index < widget.worker.rating.floor()
-                              ? Icons.star
-                              : (index < widget.worker.rating
-                                  ? Icons.star_half
-                                  : Icons.star_border),
-                          color: Colors.amber,
-                          size: 20,
-                        );
-                      }),
-                    ],
-                  ),
-
+                  _buildBulletPoint("Level: ${data['level'] ?? 'Unknown'}"),
+                  _buildBulletPoint(
+                      "Location: ${data['province'] ?? ''}, ${data['district'] ?? ''}"),
+                  _buildBulletPoint("Phone: ${data['telephone'] ?? 'N/A'}"),
                   const SizedBox(height: 20),
-
-                  // Hire button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -170,8 +158,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                HireWorkerFormScreen(worker: widget.worker),
+                            builder: (_) => HireWorkerFormScreen(
+                                worker: _convertToWorker(data)),
                           ),
                         );
                       },
@@ -182,56 +170,40 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text(
-                        'Hire',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text('Hire',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // Quick Support section (collapsible)
+            // Quick Support
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
+                  BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5)
                 ],
               ),
               child: Column(
                 children: [
-                  // Header with dropdown toggle
                   InkWell(
-                    onTap: () {
-                      setState(() {
-                        _isQuickSupportExpanded = !_isQuickSupportExpanded;
-                      });
-                    },
+                    onTap: () => setState(() =>
+                        _isQuickSupportExpanded = !_isQuickSupportExpanded),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Quick Support',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          const Text('Quick Support',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                           Icon(
                             _isQuickSupportExpanded
                                 ? Icons.keyboard_arrow_up
@@ -242,49 +214,31 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                       ),
                     ),
                   ),
-                  
-                  // Expandable content
                   if (_isQuickSupportExpanded)
                     Padding(
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Form fields
                           _buildTextField('Fullname'),
                           const SizedBox(height: 12),
                           _buildTextField('Contact Number'),
                           const SizedBox(height: 12),
                           _buildTextField('Your Message', maxLines: 4),
                           const SizedBox(height: 16),
-
-                          // Submit button
-                          Center(
-                            child: SizedBox(
-                              width: 120,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.pink,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Submit',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
+                          ElevatedButton(
+                            onPressed: () {}, // Add your support logic here
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.pink,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30)),
                             ),
-                          ),
+                            child: const Text('Submit',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 16)),
+                          )
                         ],
                       ),
                     ),
@@ -292,7 +246,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               ),
             ),
 
-            // Other Movers section
+            // Other Movers
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -300,69 +254,42 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Other Baby Sitters',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text('Other Workers',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       TextButton(
                         onPressed: () {},
                         child: const Row(
                           children: [
-                            Text(
-                              'See all',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 12,
-                              color: Colors.grey,
-                            ),
+                            Text('See all',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Icon(Icons.arrow_forward_ios,
+                                size: 12, color: Colors.grey),
                           ],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // Horizontal list of other workers
                   SizedBox(
                     height: 120,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: 3, // Show only a few workers
+                      itemCount: _otherWorkers.length,
                       itemBuilder: (context, index) {
-                        // Sample workers - in real app, filter out current worker
-                        final otherWorkers = [
-                          Worker(
-                            id: '1',
-                            name: 'Kaneza Andrew',
-                            specialty: 'Mover Specialist',
-                            imageUrl: 'assets/worker1.png',
-                            rating: 4.5,
-                          ),
-                          Worker(
-                            id: '2',
-                            name: 'Muyor Alexia',
-                            specialty: 'Mover Specialist',
-                            imageUrl: 'assets/worker2.png',
-                            rating: 5.0,
-                          ),
-                          Worker(
-                            id: '3',
-                            name: 'Gahima Dorian',
-                            specialty: 'Mover Specialist',
-                            imageUrl: 'assets/worker3.png',
-                            rating: 4.8,
-                          ),
-                        ];
-                        return _buildOtherWorkerItem(
-                            context, otherWorkers[index]);
+                        final w = _otherWorkers[index];
+                        final other = Worker(
+                          id: w['users_id'].toString(),
+                          name: w['full_name'] ??
+                              '${w['first_name'] ?? ''} ${w['last_name'] ?? ''}',
+                          specialty: w['category'] ?? 'Specialist',
+                          imageUrl: w['image'] != null
+                              ? '${ApiService.baseUrl}/uploads/profile/${w['image']}'
+                              : 'assets/default_worker.png',
+                          rating: 0.0,
+                        );
+                        return _buildOtherWorkerItem(context, other);
                       },
                     ),
                   ),
@@ -381,22 +308,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '• ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
+          const Text('• ',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+              child: Text(text,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500))),
         ],
       ),
     );
@@ -424,12 +341,11 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   Widget _buildOtherWorkerItem(BuildContext context, Worker worker) {
     return GestureDetector(
       onTap: () {
-        // Navigate to worker details (if not current worker)
-        if (worker.id != widget.worker.id) {
+        if (worker.id != widget.workerId) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => WorkerDetailScreen(worker: worker),
+              builder: (_) => WorkerDetailScreen(workerId: worker.id),
             ),
           );
         }
@@ -441,36 +357,43 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
+              child: Image.network(
                 worker.imageUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.person, size: 40, color: Colors.grey),
-                    ),
-                  );
-                },
+                errorBuilder: (_, __, ___) => Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.person, size: 40, color: Colors.grey),
+                ),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              worker.name,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(worker.name,
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis),
           ],
         ),
       ),
+    );
+  }
+
+  Worker _convertToWorker(Map<String, dynamic> data) {
+    return Worker(
+      id: data['users_id'].toString(),
+      name: data['full_name'] ??
+          '${data['first_name'] ?? ''} ${data['last_name'] ?? ''}',
+      specialty: data['category'] ?? 'Specialist',
+      imageUrl: data['image'] != null
+          ? '${ApiService.baseUrl}/uploads/profile/${data['image']}'
+          : 'assets/default_worker.png',
+      rating: (data['rating'] != null)
+          ? double.tryParse(data['rating'].toString()) ?? 0.0
+          : 0.0,
     );
   }
 }

@@ -2,6 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/worker.dart';
 import '../widgets/custom_bottom_navbar.dart';
+import '../providers/providers.dart';
+
+final workersListProvider = FutureProvider<List<WorkerListItem>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  try {
+    final response = await apiService.fetchWorkers();
+    return response.map((workerJson) {
+      return WorkerListItem(
+        id: workerJson['id'].toString(),
+        name: workerJson['full_name'] ?? workerJson['name'],
+        specialty: workerJson['category'] ?? 'Unspecified',
+        imageUrl: workerJson['image'] ?? 'assets/default_worker.png',
+        rating: (workerJson['rating'] as num?)?.toDouble() ?? 0.0,
+        isFavorite: false,
+        categories: workerJson['categories'] is List
+            ? List<String>.from(workerJson['categories'])
+            : ['Unspecified'],
+        isPartTime: workerJson['is_part_time'] ?? false,
+        experience: workerJson['experience_level'] ?? 'Beginner',
+        views: workerJson['views'] ?? 0,
+      );
+    }).toList();
+  } catch (e) {
+    print('Error fetching workers: $e');
+    return [];
+  }
+});
 
 class WorkersListScreen extends ConsumerStatefulWidget {
   const WorkersListScreen({super.key});
@@ -12,68 +39,11 @@ class WorkersListScreen extends ConsumerStatefulWidget {
 
 class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'All';
-  String _selectedPartTime = 'All';
-  String _selectedExperience = 'All';
+  int _currentPage = 1;
+  final int _workersPerPage = 5;
 
-  // Track which filter is expanded
-  String? _expandedFilter;
-
-  // Temporary static data
-  final List<WorkerListItem> _workers = [
-    WorkerListItem(
-      id: '1',
-      name: 'Mwiza Anna',
-      specialty: 'Specialist Mover',
-      imageUrl: 'assets/worker1.png',
-      rating: 2.8,
-      views: 2821,
-      isFavorite: true,
-      categories: ['Moving', 'Logistics'],
-      isPartTime: true,
-      experience: 'Beginner',
-    ),
-    WorkerListItem(
-      id: '2',
-      name: 'Kaneza Andrew',
-      specialty: 'Specialist Cleaner',
-      imageUrl: 'assets/worker2.png',
-      rating: 2.8,
-      views: 2821,
-      isFavorite: true,
-      categories: ['Cleaning', 'Home Service'],
-      isPartTime: false,
-      experience: 'Intermediate',
-    ),
-    WorkerListItem(
-      id: '3',
-      name: 'Ether Wall',
-      specialty: 'Specialist Chef',
-      imageUrl: 'assets/worker3.png',
-      rating: 2.8,
-      views: 2821,
-      isFavorite: true,
-      categories: ['Chef', 'Cooking'],
-      isPartTime: true,
-      experience: 'Expert',
-    ),
-    WorkerListItem(
-      id: '4',
-      name: 'Byiringiro James',
-      specialty: 'Specialist Mover',
-      imageUrl: 'assets/worker4.png',
-      rating: 2.8,
-      views: 2821,
-      isFavorite: false,
-      categories: ['Moving', 'Logistics'],
-      isPartTime: false,
-      experience: 'Intermediate',
-    ),
-  ];
-
-  List<WorkerListItem> get filteredWorkers {
-    return _workers.where((worker) {
-      // Search filter
+  List<WorkerListItem> _filterWorkers(List<WorkerListItem> workers) {
+    return workers.where((worker) {
       final searchMatch = _searchController.text.isEmpty ||
           worker.name
               .toLowerCase()
@@ -81,32 +51,36 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
           worker.specialty
               .toLowerCase()
               .contains(_searchController.text.toLowerCase());
-
-      // Category filter
-      final categoryMatch = _selectedCategory == 'All' ||
-          worker.categories.contains(_selectedCategory);
-
-      // Part-time filter
-      final partTimeMatch = _selectedPartTime == 'All' ||
-          (_selectedPartTime == 'Part-time' && worker.isPartTime) ||
-          (_selectedPartTime == 'Full-time' && !worker.isPartTime);
-
-      // Experience filter
-      final experienceMatch = _selectedExperience == 'All' ||
-          worker.experience == _selectedExperience;
-
-      return searchMatch && categoryMatch && partTimeMatch && experienceMatch;
+      return searchMatch;
     }).toList();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _toggleFavorite(WorkerListItem worker) {
+    setState(() {
+      worker.isFavorite = !worker.isFavorite;
+      final workersAsync = ref.read(workersListProvider);
+      workersAsync.whenData((workers) {
+        workers.sort((a, b) {
+          if (a.isFavorite && !b.isFavorite) return -1;
+          if (!a.isFavorite && b.isFavorite) return 1;
+          return 0;
+        });
+      });
+      if (worker.isFavorite) {
+        // ignore: unused_result
+        ref.refresh(workersListProvider);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final workersAsync = ref.watch(workersListProvider);
+    // Get the available screen height to calculate minimum content height
+    final screenHeight = MediaQuery.of(context).size.height;
+    // Calculate minimum height (subtract app bar, search bar, padding and bottom nav)
+    final minContentHeight = screenHeight - 200; // Adjust this value as needed
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -120,7 +94,6 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // App Bar
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Row(
@@ -137,8 +110,6 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                   ],
                 ),
               ),
-
-              // Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Container(
@@ -175,101 +146,101 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                   ),
                 ),
               ),
-
-              // Filter chips in horizontal row
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    children: [
-                      _buildFilterChip(
-                        label: 'All',
-                        isSelected: _selectedCategory == 'All' &&
-                            _selectedPartTime == 'All' &&
-                            _selectedExperience == 'All',
-                        onTap: () => setState(() {
-                          _selectedCategory = 'All';
-                          _selectedPartTime = 'All';
-                          _selectedExperience = 'All';
-                          _expandedFilter = null;
-                        }),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterButton(
-                        label: 'Categories',
-                        isActive: _selectedCategory != 'All',
-                        isExpanded: _expandedFilter == 'category',
-                        onTap: () {
-                          setState(() {
-                            _expandedFilter = _expandedFilter == 'category'
-                                ? null
-                                : 'category';
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterButton(
-                        label: 'Part-time',
-                        isActive: _selectedPartTime != 'All',
-                        isExpanded: _expandedFilter == 'partTime',
-                        onTap: () {
-                          setState(() {
-                            _expandedFilter = _expandedFilter == 'partTime'
-                                ? null
-                                : 'partTime';
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterButton(
-                        label: 'Experience',
-                        isActive: _selectedExperience != 'All',
-                        isExpanded: _expandedFilter == 'experience',
-                        onTap: () {
-                          setState(() {
-                            _expandedFilter = _expandedFilter == 'experience'
-                                ? null
-                                : 'experience';
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Dropdown filter content
-              if (_expandedFilter != null)
-                Container(
-                  margin:
-                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: _buildExpandedFilterContent(),
-                ),
-
-              // Workers list
+              const SizedBox(height: 16),
+              // Expanded to fill remaining space
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  itemCount: filteredWorkers.length,
-                  itemBuilder: (context, index) {
-                    final worker = filteredWorkers[index];
-                    return _buildWorkerCard(worker);
+                child: workersAsync.when(
+                  data: (workers) {
+                    final filteredWorkers = _filterWorkers(workers);
+                    final startIndex = (_currentPage - 1) * _workersPerPage;
+                    final endIndex = (_currentPage * _workersPerPage) >
+                            filteredWorkers.length
+                        ? filteredWorkers.length
+                        : (_currentPage * _workersPerPage);
+
+                    final pageWorkers =
+                        filteredWorkers.sublist(startIndex, endIndex);
+
+                    if (filteredWorkers.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'No workers found',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      constraints: BoxConstraints(
+                        minHeight: minContentHeight,
+                      ),
+                      child: Column(
+                        children: [
+                          // Workers list
+                          Expanded(
+                            child: ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              itemCount: pageWorkers.length,
+                              itemBuilder: (context, index) {
+                                final worker = pageWorkers[index];
+                                return _buildWorkerCard(worker);
+                              },
+                            ),
+                          ),
+                          // Pagination
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                (filteredWorkers.length / _workersPerPage)
+                                    .ceil(),
+                                (index) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _currentPage = index + 1;
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 4),
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: _currentPage == index + 1
+                                            ? Colors.pink
+                                            : Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: TextStyle(
+                                          color: _currentPage == index + 1
+                                              ? Colors.white
+                                              : Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
                   },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Colors.pink),
+                  ),
+                  error: (error, _) => Center(
+                    child: Text(
+                      'Error loading workers: $error',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -280,171 +251,28 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
     );
   }
 
-  Widget _buildFilterChip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.pink[300] : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? Colors.pink[300]! : Colors.grey[300]!,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[600],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterButton({
-    required String label,
-    required bool isActive,
-    required bool isExpanded,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.pink[100] : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isActive ? Colors.pink[300]! : Colors.grey[300]!,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? Colors.pink[700] : Colors.grey[600],
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-              color: isActive ? Colors.pink[700] : Colors.grey[600],
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpandedFilterContent() {
-    if (_expandedFilter == 'category') {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          'Moving',
-          'Cleaning',
-          'Chef',
-          'Logistics',
-          'Home Service',
-          'Cooking',
-          'Moving',
-          'Cleaning',
-          'Chef'
-        ].map((category) {
-          return _buildFilterOptionChip(
-            label: category,
-            isSelected: _selectedCategory == category,
-            onTap: () {
-              setState(() {
-                _selectedCategory =
-                    _selectedCategory == category ? 'All' : category;
-              });
-            },
-          );
-        }).toList(),
-      );
-    } else if (_expandedFilter == 'partTime') {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          'Part-time',
-          'Full-time',
-        ].map((option) {
-          return _buildFilterOptionChip(
-            label: option,
-            isSelected: _selectedPartTime == option,
-            onTap: () {
-              setState(() {
-                _selectedPartTime =
-                    _selectedPartTime == option ? 'All' : option;
-              });
-            },
-          );
-        }).toList(),
-      );
-    } else if (_expandedFilter == 'experience') {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          'Beginner',
-          'Intermediate',
-          'Expert',
-        ].map((level) {
-          return _buildFilterOptionChip(
-            label: level,
-            isSelected: _selectedExperience == level,
-            onTap: () {
-              setState(() {
-                _selectedExperience =
-                    _selectedExperience == level ? 'All' : level;
-              });
-            },
-          );
-        }).toList(),
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildFilterOptionChip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.pink[300] : Colors.pink[50],
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.pink[700],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildWorkerCard(WorkerListItem worker) {
+    final isNetworkImage = worker.imageUrl.startsWith('http');
+    final imageWidget = isNetworkImage
+        ? Image.network(
+            worker.imageUrl,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _placeholderImage();
+            },
+          )
+        : Image.asset(
+            worker.imageUrl,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _placeholderImage();
+            },
+          );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -456,28 +284,11 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Worker image
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                worker.imageUrl,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey[200],
-                    child:
-                        const Icon(Icons.person, size: 40, color: Colors.grey),
-                  );
-                },
-              ),
+              child: imageWidget,
             ),
             const SizedBox(width: 12),
-
-            // Worker details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -500,9 +311,7 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                           color: worker.isFavorite ? Colors.red : Colors.grey,
                         ),
                         onPressed: () {
-                          setState(() {
-                            worker.isFavorite = !worker.isFavorite;
-                          });
+                          _toggleFavorite(worker);
                         },
                       ),
                     ],
@@ -516,29 +325,17 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                   ),
                   const SizedBox(height: 8),
                   Row(
-                    children: [
-                      Row(
-                        children: List.generate(5, (index) {
-                          return Icon(
-                            index < worker.rating.floor()
-                                ? Icons.star
-                                : index < worker.rating
-                                    ? Icons.star_half
-                                    : Icons.star_border,
-                            color: Colors.amber,
-                            size: 16,
-                          );
-                        }),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${worker.rating} (${worker.views} views)',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        index < worker.rating.floor()
+                            ? Icons.star
+                            : index < worker.rating
+                                ? Icons.star_half
+                                : Icons.star_border,
+                        color: Colors.amber,
+                        size: 16,
+                      );
+                    }),
                   ),
                 ],
               ),
@@ -548,9 +345,17 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
       ),
     );
   }
+
+  Widget _placeholderImage() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Colors.grey[200],
+      child: const Icon(Icons.person, size: 40, color: Colors.grey),
+    );
+  }
 }
 
-// Extended worker model for list screen
 class WorkerListItem extends Worker {
   bool isFavorite;
   List<String> categories;
