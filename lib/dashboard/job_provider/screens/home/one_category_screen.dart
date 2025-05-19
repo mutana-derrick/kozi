@@ -4,6 +4,7 @@ import 'package:kozi/dashboard/job_provider/models/service_category.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
 import 'package:kozi/dashboard/job_provider/screens/home/worker_details_screen.dart';
 import 'package:kozi/dashboard/job_provider/providers/providers.dart';
+import 'package:kozi/services/api_service.dart';
 
 class CategoryWorkersScreen extends ConsumerStatefulWidget {
   final ServiceCategory category;
@@ -32,7 +33,8 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
   Worker _convertToWorkerModel(dynamic workerData) {
     return Worker(
       id: workerData['users_id'].toString(),
-      name: workerData['full_name'] ?? '${workerData['first_name']} ${workerData['last_name']}',
+      name: workerData['full_name'] ??
+          '${workerData['first_name']} ${workerData['last_name']}',
       specialty: widget.category.name,
       // Use a default image if image is not available
       imageUrl: workerData['image'] != null && workerData['image'].isNotEmpty
@@ -298,11 +300,13 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.refresh(categoryWorkersProvider(widget.category.id)),
+                      onPressed: () => ref
+                          .refresh(categoryWorkersProvider(widget.category.id)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.pink[400],
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
                       ),
                       child: const Text('Try Again'),
                     ),
@@ -321,11 +325,11 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
       onTap: () {
         // Navigate to worker details page
         Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => WorkerDetailScreen(workerId: worker.id),
-  ),
-);
+          context,
+          MaterialPageRoute(
+            builder: (context) => WorkerDetailScreen(workerId: worker.id),
+          ),
+        );
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -342,19 +346,21 @@ class _CategoryWorkersScreenState extends ConsumerState<CategoryWorkersScreen> {
                         return Container(
                           color: Colors.grey[300],
                           child: const Center(
-                            child: Icon(Icons.person, size: 40, color: Colors.grey),
+                            child: Icon(Icons.person,
+                                size: 40, color: Colors.grey),
                           ),
                         );
                       },
                     )
                   : Image.network(
-                      'http://192.168.0.105:3000/${worker.imageUrl}',
+                      '${ApiService.baseUrl}/${worker.imageUrl}',
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: Colors.grey[300],
                           child: const Center(
-                            child: Icon(Icons.person, size: 40, color: Colors.grey),
+                            child: Icon(Icons.person,
+                                size: 40, color: Colors.grey),
                           ),
                         );
                       },

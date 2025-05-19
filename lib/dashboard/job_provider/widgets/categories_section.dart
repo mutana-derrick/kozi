@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../models/service_category.dart';
-import '../providers/providers.dart';
+import 'package:kozi/dashboard/job_provider/models/service_category.dart';
+import 'package:kozi/dashboard/job_provider/providers/providers.dart';
+import 'package:kozi/dashboard/job_provider/screens/home/one_category_screen.dart';
 import 'shared_widgets.dart';
 
 // New provider for dynamic categories
@@ -64,7 +65,7 @@ class CategoriesSection extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final category = limitedCategories[index];
                         final cardWidth = isLargeScreen ? 120.0 : 80.0;
-                        return _buildCategoryCard(category,
+                        return _buildCategoryCard(context, category,
                             cardWidth: cardWidth);
                       },
                     ),
@@ -81,42 +82,52 @@ class CategoriesSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryCard(ServiceCategory category,
+  Widget _buildCategoryCard(BuildContext context, ServiceCategory category,
       {required double cardWidth}) {
-    return Container(
-      width: cardWidth,
-      margin: const EdgeInsets.only(right: 15),
-      child: Column(
-        children: [
-          Container(
-            width: 60, // Fixed icon size
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryWorkersScreen(category: category),
+          ),
+        );
+      },
+      child: Container(
+        width: cardWidth,
+        margin: const EdgeInsets.only(right: 15),
+        child: Column(
+          children: [
+            Container(
+              width: 60, // Fixed icon size
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: FaIcon(
+                  category.icon,
+                  color: Colors.pink[300],
+                  size: 24,
                 ),
-              ],
-            ),
-            child: Center(
-              child: FaIcon(
-                category.icon,
-                color: Colors.pink[300],
-                size: 24,
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            category.name,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              category.name,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     );
   }

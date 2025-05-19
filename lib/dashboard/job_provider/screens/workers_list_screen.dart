@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kozi/services/api_service.dart';
 import '../models/worker.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../providers/providers.dart';
+import '../screens/home/worker_details_screen.dart'; // Added import for WorkerDetailScreen
 
 final workersListProvider = FutureProvider<List<WorkerListItem>>((ref) async {
   final apiService = ref.read(apiServiceProvider);
@@ -10,10 +12,15 @@ final workersListProvider = FutureProvider<List<WorkerListItem>>((ref) async {
     final response = await apiService.fetchWorkers();
     return response.map((workerJson) {
       return WorkerListItem(
-        id: workerJson['id'].toString(),
-        name: workerJson['full_name'] ?? workerJson['name'],
+        id: workerJson['users_id']?.toString() ??
+            workerJson['id']
+                .toString(), // Updated to use users_id like in WorkerRecommendations
+        name: workerJson['full_name'] ?? workerJson['name'] ?? 'Unknown Worker',
         specialty: workerJson['category'] ?? 'Unspecified',
-        imageUrl: workerJson['image'] ?? 'assets/default_worker.png',
+        imageUrl: workerJson['image'] != null &&
+                workerJson['image'].toString().trim().isNotEmpty
+            ? '${ApiService.baseUrl}/uploads/profile/${workerJson['image']}'
+            : '', // Empty string will trigger fallback image
         rating: (workerJson['rating'] as num?)?.toDouble() ?? 0.0,
         isFavorite: false,
         categories: workerJson['categories'] is List
@@ -21,7 +28,7 @@ final workersListProvider = FutureProvider<List<WorkerListItem>>((ref) async {
             : ['Unspecified'],
         isPartTime: workerJson['is_part_time'] ?? false,
         experience: workerJson['experience_level'] ?? 'Beginner',
-        views: workerJson['views'] ?? 0,
+        views: workerJson['views'] ?? 4,
       );
     }).toList();
   } catch (e) {
@@ -71,6 +78,19 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
         ref.refresh(workersListProvider);
       }
     });
+  }
+
+  // Navigate to worker details screen
+  void _navigateToWorkerDetails(String workerId) {
+    // Debug print worker ID before navigation
+    print('Navigating to worker details with ID: $workerId');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WorkerDetailScreen(workerId: workerId),
+      ),
+    );
   }
 
   @override
@@ -252,104 +272,124 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
   }
 
   Widget _buildWorkerCard(WorkerListItem worker) {
-    final isNetworkImage = worker.imageUrl.startsWith('http');
-    final imageWidget = isNetworkImage
-        ? Image.network(
-            worker.imageUrl,
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return _placeholderImage();
-            },
-          )
-        : Image.asset(
-            worker.imageUrl,
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return _placeholderImage();
-            },
-          );
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: imageWidget,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        worker.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          worker.isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: worker.isFavorite ? Colors.red : Colors.grey,
-                        ),
-                        onPressed: () {
-                          _toggleFavorite(worker);
-                        },
-                      ),
-                    ],
-                  ),
-                  Text(
-                    worker.specialty,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: List.generate(5, (index) {
-                      return Icon(
-                        index < worker.rating.floor()
-                            ? Icons.star
-                            : index < worker.rating
-                                ? Icons.star_half
-                                : Icons.star_border,
-                        color: Colors.amber,
-                        size: 16,
-                      );
-                    }),
-                  ),
-                ],
+    return GestureDetector(
+      onTap: () => _navigateToWorkerDetails(worker.id),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: _buildWorkerImage(worker.imageUrl, 80, 80),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          worker.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            worker.isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: worker.isFavorite ? Colors.red : Colors.grey,
+                          ),
+                          onPressed: () {
+                            _toggleFavorite(worker);
+                          },
+                        ),
+                      ],
+                    ),
+                    Text(
+                      worker.specialty,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < worker.rating.floor()
+                              ? Icons.star
+                              : index < worker.rating
+                                  ? Icons.star_half
+                                  : Icons.star_border,
+                          color: Colors.amber,
+                          size: 16,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _placeholderImage() {
+  // Enhanced worker image method with error handling
+  Widget _buildWorkerImage(String imageUrl, double width, double height) {
+    // If the image URL is empty or invalid, return fallback immediately
+    if (imageUrl.isEmpty || !imageUrl.startsWith('http')) {
+      return _placeholderImage(width, height);
+    }
+
+    // For network images, use Image.network with error handling
+    return Image.network(
+      imageUrl,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[100],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.pink[300]!),
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        // Log error but don't let it crash the app
+        print('Error loading image: $error for URL: $imageUrl');
+        return _placeholderImage(width, height);
+      },
+    );
+  }
+
+  Widget _placeholderImage([double width = 80, double height = 80]) {
     return Container(
-      width: 80,
-      height: 80,
+      width: width,
+      height: height,
       color: Colors.grey[200],
       child: const Icon(Icons.person, size: 40, color: Colors.grey),
     );
