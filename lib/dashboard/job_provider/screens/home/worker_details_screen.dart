@@ -149,7 +149,6 @@ class _WorkerDetailScreenState extends ConsumerState<WorkerDetailScreen> {
                   _buildBulletPoint("Level: ${data['level'] ?? 'Unknown'}"),
                   _buildBulletPoint(
                       "Location: ${data['province'] ?? ''}, ${data['district'] ?? ''}"),
-                  _buildBulletPoint("Phone: ${data['telephone'] ?? 'N/A'}"),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -311,9 +310,11 @@ class _WorkerDetailScreenState extends ConsumerState<WorkerDetailScreen> {
           const Text('• ',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           Expanded(
-              child: Text(text,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500))),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );

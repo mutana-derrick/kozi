@@ -39,6 +39,16 @@ class ApiService {
     );
   }
 
+  // Add this method to your ApiService class:
+  Future<String?> getUserEmail() async {
+    try {
+      return await _storage.read(key: 'user_email');
+    } catch (e) {
+      print("Error reading user email from storage: $e");
+      return null;
+    }
+  }
+
   // Job Seeker Login
   Future<Map<String, dynamic>> loginJobSeeker(
       String email, String password) async {
@@ -1531,7 +1541,59 @@ class ApiService {
       throw Exception('An unexpected error occurred');
     }
   }
-  // Method to hire a worker
+
+  // Method to fetch job provider id
+  Future<int> getJobProviderId(int usersId) async {
+    try {
+      final response =
+          await _dio.get('$baseUrl/provider/job_provider_id/$usersId');
+
+      if (response.statusCode == 200 &&
+          response.data is List &&
+          response.data.isNotEmpty) {
+        return response.data[0]['job_provider_id'];
+      } else {
+        throw Exception('Job provider ID not found');
+      }
+    } on DioException catch (e) {
+      print('Error fetching job_provider_id: $e');
+      throw Exception('Failed to fetch job_provider_id: ${e.message}');
+    } catch (e) {
+      print('Unexpected error: $e');
+      throw Exception('An unexpected error occurred');
+    }
+  }
+
+  // Method to fetch job provider profile data
+  Future<Map<String, dynamic>> fetchJobProviderProfile(int usersId) async {
+    try {
+      final response =
+          await _dio.get('$baseUrl/provider/view_profile/$usersId');
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to fetch job provider profile');
+      }
+    } on DioException catch (e) {
+      print('Dio error fetching job provider profile: $e');
+      throw Exception('Failed to fetch job provider profile: ${e.message}');
+    } catch (e) {
+      print('Unexpected error fetching job provider profile: $e');
+      throw Exception('An unexpected error occurred');
+    }
+  }
+
+  Future<Map<String, dynamic>> getJobSeekerByUserId(String userId) async {
+    final response = await _dio.get('$baseUrl/provider/job_seeker/$userId');
+    if (response.statusCode == 200) {
+      return response.data;
+    } else {
+      throw Exception('Failed to fetch job seeker by user ID');
+    }
+  }
+
+// Method to hire a worker
   Future<Map<String, dynamic>> hireWorker({
     required String jobSeekerId,
     required String jobProviderId,
@@ -1539,6 +1601,10 @@ class ApiService {
     required String providerLastName,
     required String seekerFirstName,
     required String seekerLastName,
+    required String whenNeedWorker,
+    required String workingMode,
+    required String accommodationPreference,
+    required String jobDescription,
   }) async {
     try {
       final response = await _dio.post(
@@ -1550,11 +1616,23 @@ class ApiService {
           'provider_last_name': providerLastName,
           'seeker_first_name': seekerFirstName,
           'seeker_last_name': seekerLastName,
+          'when_need_worker': whenNeedWorker,
+          'working_mode': workingMode,
+          'accommodation_preference': accommodationPreference,
+          'job_description': jobDescription,
         },
+        options: Options(
+          validateStatus: (status) {
+            return status != null && status >= 200 && status <= 409;
+          },
+        ),
       );
-      
+
       if (response.statusCode == 201) {
         return response.data;
+      } else if (response.statusCode == 409) {
+        // Return message from backend directly
+        return {'status': 'conflict', 'message': response.data['message']};
       } else {
         throw Exception('Failed to hire worker');
       }

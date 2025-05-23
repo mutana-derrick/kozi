@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/dashboard/job_provider/models/worker.dart';
 import 'package:kozi/dashboard/job_provider/widgets/hire_success_dialog.dart';
+import 'package:kozi/services/api_service.dart'; // Import API service
 
 final workingModeProvider = StateProvider<String?>((ref) => null);
 final needWorkerTimeProvider = StateProvider<String?>((ref) => null);
-// New provider for accommodation preference
 final accommodationPreferenceProvider = StateProvider<String?>((ref) => null);
 
 class HireWorkerFormScreen extends ConsumerStatefulWidget {
@@ -23,13 +23,186 @@ class HireWorkerFormScreen extends ConsumerStatefulWidget {
 
 class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  // Controller for salary range field
-  final TextEditingController _salaryRangeController = TextEditingController();
+
+  // Form controllers
+  final TextEditingController _fullnameController = TextEditingController();
+  final TextEditingController _contactController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _jobDescriptionController =
+      TextEditingController();
+
+  // API service
+  final ApiService _apiService = ApiService();
+
+  // Data variables
+  bool _isLoading = true;
+  String _errorMessage = '';
+  Map<String, dynamic> _jobProviderData = {};
+  Map<String, dynamic> _workerData = {};
+  int? _jobProviderId;
+  int? _jobSeekerId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // Get user email from secure storage
+      final userEmail = await _apiService.getUserEmail();
+
+      if (userEmail == null || userEmail.isEmpty) {
+        throw Exception('User email not found. Please log in again.');
+      }
+
+      // Set the email in the controller
+      _emailController.text = userEmail;
+
+      // Get user ID by email
+      final userId = await _apiService.getUserIdByEmail(userEmail);
+
+      if (userId == null) {
+        throw Exception('User ID not found');
+      }
+
+      // Get job provider ID
+      _jobProviderId = await _apiService.getJobProviderId(int.parse(userId));
+
+      // Get job provider profile data
+      _jobProviderData =
+          await _apiService.fetchJobProviderProfile(int.parse(userId));
+
+      // Get worker data
+      _workerData =
+          await _apiService.getWorkerById(widget.worker.id.toString());
+
+      final jobSeekerInfo =
+          await _apiService.getJobSeekerByUserId(widget.worker.id.toString());
+      _jobSeekerId = int.parse(jobSeekerInfo['job_seeker_id'].toString());
+
+      // Pre-fill form fields with job provider data
+      _populateFormFields();
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _populateFormFields() {
+    // Extract name parts for provider
+    final firstName = _jobProviderData['first_name'] ?? '';
+    final lastName = _jobProviderData['last_name'] ?? '';
+
+    // Populate form fields
+    _fullnameController.text = '$firstName $lastName'.trim();
+    _contactController.text = _jobProviderData['telephone'] ?? '';
+    _addressController.text = _jobProviderData['district'] ?? '';
+    // Note: Email is already populated from getUserEmail() in _loadData()
+  }
 
   @override
   void dispose() {
-    _salaryRangeController.dispose();
+    _fullnameController.dispose();
+    _contactController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _jobDescriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitHireRequest() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+          ),
+        );
+      },
+    );
+
+    try {
+      // Extract name parts for provider and worker
+      final providerNameParts = _fullnameController.text.split(' ');
+      final providerFirstName = providerNameParts.first;
+      final providerLastName =
+          providerNameParts.length > 1 ? providerNameParts.last : '';
+
+      final workerNameParts = widget.worker.name.split(' ');
+      final seekerFirstName = workerNameParts.first;
+      final seekerLastName =
+          workerNameParts.length > 1 ? workerNameParts.last : '';
+
+      // Submit hire request
+      final result = await _apiService.hireWorker(
+        jobSeekerId: _jobSeekerId.toString(),
+        jobProviderId: _jobProviderId.toString(),
+        providerFirstName: providerFirstName,
+        providerLastName: providerLastName,
+        seekerFirstName: seekerFirstName,
+        seekerLastName: seekerLastName,
+        whenNeedWorker: ref.read(needWorkerTimeProvider) ?? '',
+        workingMode: ref.read(workingModeProvider) ?? '',
+        accommodationPreference:
+            ref.read(accommodationPreferenceProvider) ?? '',
+        jobDescription: _jobDescriptionController.text,
+      );
+
+      // Handle already hired case
+      if (result['status'] == 'conflict') {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show success dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const HireSuccessDialog();
+        },
+      );
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit request: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -61,369 +234,357 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Worker Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Worker image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        widget.worker.imageUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: Icon(Icons.person,
-                                  size: 40, color: Colors.grey),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Worker details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                widget.worker.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.verified,
-                                color: Colors.pink,
-                                size: 16,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.worker.specialty,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Rating stars
-                          Row(
-                            children: [
-                              ...List.generate(5, (index) {
-                                return Icon(
-                                  index < widget.worker.rating.floor()
-                                      ? Icons.star
-                                      : (index < widget.worker.rating
-                                          ? Icons.star_half
-                                          : Icons.star_border),
-                                  color: Colors.amber,
-                                  size: 16,
-                                );
-                              }),
-                              const SizedBox(width: 10),
-                              Text(
-                                '5000 Frw/hr',
-                                style: TextStyle(
-                                  color: Colors.green[600],
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
               ),
-
-              const SizedBox(height: 24),
-              const Text(
-                'Fill this form to hire with us:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Hire Form
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    _buildFormField(
-                      hintText: 'Fullname',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFormField(
-                      hintText: 'Contact Number',
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFormField(
-                      hintText: 'Email address',
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFormField(
-                      hintText: 'Your address',
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Need Worker Time Dropdown
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade200),
+            )
+          : _errorMessage.isNotEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Error: $_errorMessage',
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
                       ),
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'When you need worker',
-                          hintStyle: TextStyle(color: Colors.grey),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink,
                         ),
-                        value: ref.watch(needWorkerTimeProvider),
-                        hint: const Text('When you need worker'),
-                        items: const [
-                          DropdownMenuItem(value: 'ASAP', child: Text('ASAP')),
-                          DropdownMenuItem(
-                              value: 'Within a day',
-                              child: Text('Within a day')),
-                          DropdownMenuItem(
-                              value: 'Next week', child: Text('Next week')),
-                          DropdownMenuItem(
-                              value: 'Next month', child: Text('Next month')),
-                        ],
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            ref.read(needWorkerTimeProvider.notifier).state =
-                                value;
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select when you need the worker';
-                          }
-                          return null;
-                        },
+                        child: const Text('Retry'),
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Working Mode Dropdown
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Working mode',
-                          hintStyle: TextStyle(color: Colors.grey),
-                        ),
-                        value: ref.watch(workingModeProvider),
-                        hint: const Text('Select working mode'),
-                        items: const [
-                          DropdownMenuItem(
-                              value: 'Part-time', child: Text('Part-time')),
-                          DropdownMenuItem(
-                              value: 'Full-time', child: Text('Full-time')),
-                        ],
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            ref.read(workingModeProvider.notifier).state =
-                                value;
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a working mode';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // NEW: Accommodation Preference Dropdown
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Accommodation preference',
-                          hintStyle: TextStyle(color: Colors.grey),
-                        ),
-                        value: ref.watch(accommodationPreferenceProvider),
-                        hint: const Text('Select accommodation preference'),
-                        items: const [
-                          DropdownMenuItem(
-                              value: 'Stay in', child: Text('Stay in')),
-                          DropdownMenuItem(
-                              value: 'Stay out', child: Text('Stay out')),
-                        ],
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            ref
-                                .read(accommodationPreferenceProvider.notifier)
-                                .state = value;
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select accommodation preference';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // NEW: Salary Range Field
-                    _buildFormField(
-                      hintText: 'Salary range (e.g., 5000-10000 Frw)',
-                      controller: _salaryRangeController,
-                      keyboardType: TextInputType.text,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Job Description Field
-                    _buildFormField(
-                      hintText: 'Job description',
-                      maxLines: 5,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Action Buttons
-                    Row(
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: Colors.pink),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                color: Colors.pink,
-                                fontSize: 16,
-                              ),
-                            ),
+                        // Worker Card
+                        _buildWorkerCard(),
+
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Fill this form to hire with us:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                // Show loading indicator
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (BuildContext context) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.pink),
+                        const SizedBox(height: 16),
+
+                        // Hire Form
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              // Read-only fields
+                              _buildReadOnlyFormField(
+                                hintText: 'Fullname',
+                                controller: _fullnameController,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildReadOnlyFormField(
+                                hintText: 'Contact Number',
+                                controller: _contactController,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildReadOnlyFormField(
+                                hintText: 'Email address',
+                                controller: _emailController,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildReadOnlyFormField(
+                                hintText: 'Your address',
+                                controller: _addressController,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Need Worker Time Dropdown
+                              _buildDropdownField(
+                                hintText: 'When you need worker',
+                                provider: needWorkerTimeProvider,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'ASAP', child: Text('ASAP')),
+                                  DropdownMenuItem(
+                                      value: 'Within a day',
+                                      child: Text('Within a day')),
+                                  DropdownMenuItem(
+                                      value: 'Next week',
+                                      child: Text('Next week')),
+                                  DropdownMenuItem(
+                                      value: 'Next month',
+                                      child: Text('Next month')),
+                                ],
+                                validationMessage:
+                                    'Please select when you need the worker',
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Working Mode Dropdown
+                              _buildDropdownField(
+                                hintText: 'Working mode',
+                                provider: workingModeProvider,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'Part-time',
+                                      child: Text('Part-time')),
+                                  DropdownMenuItem(
+                                      value: 'Full-time',
+                                      child: Text('Full-time')),
+                                ],
+                                validationMessage:
+                                    'Please select a working mode',
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Accommodation Preference Dropdown
+                              _buildDropdownField(
+                                hintText: 'Accommodation preference',
+                                provider: accommodationPreferenceProvider,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'Stay in', child: Text('Stay in')),
+                                  DropdownMenuItem(
+                                      value: 'Stay out',
+                                      child: Text('Stay out')),
+                                ],
+                                validationMessage:
+                                    'Please select accommodation preference',
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Job Description Field
+                              _buildFormField(
+                                hintText: 'Job description',
+                                controller: _jobDescriptionController,
+                                maxLines: 5,
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Action Buttons
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        side: const BorderSide(
+                                            color: Colors.pink),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
                                       ),
-                                    );
-                                  },
-                                );
-
-                                // Simulate API call with a delay
-                                Future.delayed(const Duration(seconds: 2), () {
-                                  // Close loading dialog
-                                  Navigator.of(context).pop();
-
-                                  // Show success dialog
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (BuildContext context) {
-                                      return const HireSuccessDialog();
-                                    },
-                                  );
-                                });
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.pink,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                      child: const Text(
+                                        'Cancel',
+                                        style: TextStyle(
+                                          color: Colors.pink,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: _submitHireRequest,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.pink,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Submit',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            child: const Text(
-                              'Submit',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            ],
                           ),
                         ),
                       ],
                     ),
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildWorkerCard() {
+    // Extract worker's hourly rate from API data
+    final hourlyRate =
+        _workerData.isNotEmpty && _workerData['hourly_rate'] != null
+            ? _workerData['hourly_rate'].toString()
+            : widget.worker.hourlyRate?.toString() ?? '5000';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Worker image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              _workerData.isNotEmpty && _workerData['profile_image'] != null
+                  ? _workerData['profile_image']
+                  : widget.worker.imageUrl,
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Icon(Icons.person, size: 40, color: Colors.grey),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Worker details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      _workerData.isNotEmpty
+                          ? "${_workerData['first_name'] ?? ''} ${_workerData['last_name'] ?? ''}"
+                          : widget.worker.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.verified,
+                      color: Colors.pink,
+                      size: 16,
+                    ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  _workerData.isNotEmpty && _workerData['category'] != null
+                      ? _workerData['category']
+                      : widget.worker.specialty,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Rating stars and hourly rate
+                Row(
+                  children: [
+                    ...List.generate(5, (index) {
+                      final rating = _workerData.isNotEmpty &&
+                              _workerData['rating'] != null
+                          ? double.tryParse(_workerData['rating'].toString()) ??
+                              widget.worker.rating
+                          : widget.worker.rating;
+
+                      return Icon(
+                        index < rating.floor()
+                            ? Icons.star
+                            : (index < rating
+                                ? Icons.star_half
+                                : Icons.star_border),
+                        color: Colors.amber,
+                        size: 16,
+                      );
+                    }),
+                    const SizedBox(width: 10),
+                    Text(
+                      '$hourlyRate Frw/hr',
+                      style: TextStyle(
+                        color: Colors.green[600],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // New widget for read-only form fields
+  Widget _buildReadOnlyFormField({
+    required String hintText,
+    required TextEditingController controller,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      enabled: false,
+      style: const TextStyle(
+        color: Colors.black54,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
       ),
     );
@@ -434,7 +595,7 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
     VoidCallback? onTap,
-    TextEditingController? controller,
+    required TextEditingController controller,
   }) {
     return TextFormField(
       controller: controller,
@@ -470,6 +631,43 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.red.shade300),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String hintText,
+    required StateProvider<String?> provider,
+    required List<DropdownMenuItem<String>> items,
+    required String validationMessage,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Colors.black),
+        ),
+        value: ref.watch(provider),
+        hint: Text(hintText),
+        items: items,
+        onChanged: (String? value) {
+          if (value != null) {
+            ref.read(provider.notifier).state = value;
+          }
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return validationMessage;
+          }
+          return null;
+        },
       ),
     );
   }

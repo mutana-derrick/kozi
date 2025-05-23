@@ -4,6 +4,7 @@ class Worker {
   final String specialty;
   final String imageUrl;
   final double rating; 
+  final double? hourlyRate;
   // Additional fields from API
   final String? experience;
   final String? education;
@@ -22,6 +23,7 @@ class Worker {
     required this.specialty,
     required this.imageUrl,
     required this.rating,
+    this.hourlyRate,
     this.experience,
     this.education,
     this.location,
