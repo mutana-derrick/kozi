@@ -436,10 +436,9 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
 
   Widget _buildWorkerCard() {
     // Extract worker's hourly rate from API data
-    final hourlyRate =
-        _workerData.isNotEmpty && _workerData['hourly_rate'] != null
-            ? _workerData['hourly_rate'].toString()
-            : widget.worker.hourlyRate?.toString() ?? '5000';
+    final hourlyRate = _workerData.isNotEmpty && _workerData['salary'] != null
+        ? _workerData['salary'].toString()
+        : widget.worker.hourlyRate?.toString() ?? '50000';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -537,7 +536,7 @@ class _HireWorkerFormScreenState extends ConsumerState<HireWorkerFormScreen> {
                     }),
                     const SizedBox(width: 10),
                     Text(
-                      '$hourlyRate Frw/hr',
+                      hourlyRate,
                       style: TextStyle(
                         color: Colors.green[600],
                         fontWeight: FontWeight.bold,

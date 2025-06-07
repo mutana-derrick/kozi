@@ -250,24 +250,24 @@ class _WorkerDetailScreenState extends ConsumerState<WorkerDetailScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Other Workers',
+                      Text('Other Workers',
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold)),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Row(
-                          children: [
-                            Text('See all',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 14)),
-                            Icon(Icons.arrow_forward_ios,
-                                size: 12, color: Colors.grey),
-                          ],
-                        ),
-                      ),
+                      // TextButton(
+                      //   onPressed: () {},
+                      //   child: const Row(
+                      //     children: [
+                      //       Text('See all',
+                      //           style: TextStyle(
+                      //               color: Colors.grey, fontSize: 14)),
+                      //       Icon(Icons.arrow_forward_ios,
+                      //           size: 12, color: Colors.grey),
+                      //     ],
+                      //   ),
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 12),

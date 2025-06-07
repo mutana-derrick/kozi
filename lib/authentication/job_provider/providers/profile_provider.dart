@@ -8,7 +8,8 @@ class ProviderProfileState {
   final String lastName;
   final String dateOfBirth;
   final String gender;
-  final String country;  // Added country field
+  final String country; // Added country field
+  final String category; // Added category field
   final String province;
   final String district;
   final String sector;
@@ -28,7 +29,8 @@ class ProviderProfileState {
     this.lastName = '',
     this.dateOfBirth = 'DD/MM/YYYY',
     this.gender = '',
-    this.country = '',  // Initialize country field
+    this.country = '', // Initialize country field
+    this.category = '', // Initialize category field
     this.province = '',
     this.district = '',
     this.sector = '',
@@ -49,7 +51,8 @@ class ProviderProfileState {
     String? lastName,
     String? dateOfBirth,
     String? gender,
-    String? country,  // Add to copyWith method
+    String? country, // Add to copyWith method
+    String? category, // Add to copyWith method
     String? province,
     String? district,
     String? sector,
@@ -69,7 +72,8 @@ class ProviderProfileState {
       lastName: lastName ?? this.lastName,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,
-      country: country ?? this.country,  // Include in return
+      country: country ?? this.country, // Include in return
+      category: category ?? this.category, // Include in return
       province: province ?? this.province,
       district: district ?? this.district,
       sector: sector ?? this.sector,
@@ -109,9 +113,15 @@ class ProfileNotifier extends StateNotifier<ProviderProfileState> {
   void updateGender(String value) {
     state = state.copyWith(gender: value);
   }
-  
-  void updateCountry(String value) {  // Add method for country
+
+  void updateCountry(String value) {
+    // Add method for country
     state = state.copyWith(country: value);
+  }
+
+  void updateCategory(String value) {
+    // Add method for category
+    state = state.copyWith(category: value);
   }
 
   void updateProvince(String value) {
@@ -170,6 +180,10 @@ class ProfileNotifier extends StateNotifier<ProviderProfileState> {
     if (step >= 0 && step <= 1) {
       state = state.copyWith(currentStep: step);
     }
+  }
+
+  void setSubmitting(bool value) {
+    state = state.copyWith(isSubmitting: value);
   }
 }
 

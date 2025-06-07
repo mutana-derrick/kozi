@@ -86,79 +86,103 @@ class _AddressFormSectionState extends ConsumerState<AddressFormSection> {
   }
 
   Future<void> _submitProfile(BuildContext context) async {
-    // Validate fields first
-    if (!_validateFields()) {
-      return;
+  // Validate fields first
+  if (!_validateFields()) {
+    return;
+  }
+
+  setState(() {
+    _isSubmitting = true;
+    _errorMessage = null;
+  });
+
+  try {
+    final apiService = ref.read(apiServiceProvider);
+    final profileState = ref.read(profileProvider);
+    final userId = await apiService.getUserId();
+
+    if (userId == null) {
+      throw Exception("User ID not found");
     }
+
+    // Create data for API request with all required fields
+    final data = {
+      'first_name': profileState.firstName,
+      'last_name': profileState.lastName,
+      'gender': profileState.gender,
+      'telephone': profileState.telephone,
+      'country': profileState.country,
+      'category': profileState.category, // Added category field
+      'province': profileState.province,
+      'district': profileState.district,
+      'sector': profileState.sector,
+      'cell': profileState.cell,
+      'village': profileState.village,
+    };
+
+    // Add profile image path if available
+    if (profileState.profileImagePath.isNotEmpty) {
+      data['profileImagePath'] = profileState.profileImagePath;
+    }
+
+    print('Submitting profile data: $data');
+
+    // Send update request
+    final result = await apiService.updateProviderProfile(userId, data);
 
     setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
+      _isSubmitting = false;
     });
 
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      final profileState = ref.read(profileProvider);
-      final userId = await apiService.getUserId();
+    if (result['success'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
 
-      if (userId == null) {
-        throw Exception("User ID not found");
-      }
-
-      // Create data for API request
-      final data = {
-        'first_name': profileState.firstName,
-        'last_name': profileState.lastName,
-        'gender': profileState.gender,
-        'email': '', // You might need to get this from elsewhere
-        'password': '', // You might need to handle this differently
-        'full_name': '${profileState.firstName} ${profileState.lastName}',
-        'telephone': profileState.telephone,
-        'country': profileState.country, // Added country field
-        'province': profileState.province,
-        'district': profileState.district,
-        'sector': profileState.sector,
-        'cell': profileState.cell,
-        'village': profileState.village,
-        'date_of_birth': profileState.dateOfBirth,
-        'id': profileState.id, // Make sure this matches your backend
-        'description':
-            profileState.description, // Or any other description field
-      };
-
-      // Send update request
-      final result = await apiService.updateProviderProfile(userId, data);
-
-      setState(() {
-        _isSubmitting = false;
-      });
-
-      if (result['success'] == true) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile updated successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Navigate to dashboard
-          if (context.mounted) {
-            context.go('/providerdashboardscreen');
-          }
+        // Navigate to dashboard
+        if (context.mounted) {
+          context.go('/providerdashboardscreen');
         }
-      } else {
-        setState(() {
-          _errorMessage = result['message'] ?? 'Failed to update profile';
-        });
       }
-    } catch (e) {
+    } else {
       setState(() {
-        _isSubmitting = false;
-        _errorMessage = 'Error: $e';
+        _errorMessage = result['message'] ?? 'Failed to update profile';
       });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage!),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    setState(() {
+      _isSubmitting = false;
+      _errorMessage = 'Error: $e';
+    });
+    
+    print('Profile submission error: $e');
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

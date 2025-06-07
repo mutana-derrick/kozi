@@ -47,10 +47,10 @@ class WorkersListScreen extends ConsumerStatefulWidget {
 class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _currentPage = 1;
-  final int _workersPerPage = 5;
+  final int _workersPerPage = 10; // Updated to 10 workers per page
 
   List<WorkerListItem> _filterWorkers(List<WorkerListItem> workers) {
-    return workers.where((worker) {
+    final filtered = workers.where((worker) {
       final searchMatch = _searchController.text.isEmpty ||
           worker.name
               .toLowerCase()
@@ -60,23 +60,22 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
               .contains(_searchController.text.toLowerCase());
       return searchMatch;
     }).toList();
+
+    // Sort filtered workers: favorites first, then by name
+    filtered.sort((a, b) {
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      return a.name.compareTo(b.name);
+    });
+
+    return filtered;
   }
 
   void _toggleFavorite(WorkerListItem worker) {
     setState(() {
       worker.isFavorite = !worker.isFavorite;
-      final workersAsync = ref.read(workersListProvider);
-      workersAsync.whenData((workers) {
-        workers.sort((a, b) {
-          if (a.isFavorite && !b.isFavorite) return -1;
-          if (!a.isFavorite && b.isFavorite) return 1;
-          return 0;
-        });
-      });
-      if (worker.isFavorite) {
-        // ignore: unused_result
-        ref.refresh(workersListProvider);
-      }
+      // Reset to page 1 when toggling favorites to show the updated order
+      _currentPage = 1;
     });
   }
 
@@ -89,6 +88,85 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => WorkerDetailScreen(workerId: workerId),
+      ),
+    );
+  }
+
+  // Build pagination with smart ellipsis
+  List<Widget> _buildPaginationButtons(int totalPages) {
+    List<Widget> buttons = [];
+
+    if (totalPages <= 5) {
+      // Show all pages if 5 or fewer
+      for (int i = 1; i <= totalPages; i++) {
+        buttons.add(_buildPageButton(i));
+      }
+    } else {
+      // Show smart pagination with ellipsis
+      if (_currentPage <= 3) {
+        // Show: 1 2 3 ... totalPages
+        for (int i = 1; i <= 3; i++) {
+          buttons.add(_buildPageButton(i));
+        }
+        buttons.add(_buildEllipsis());
+        buttons.add(_buildPageButton(totalPages));
+      } else if (_currentPage >= totalPages - 2) {
+        // Show: 1 ... (totalPages-2) (totalPages-1) totalPages
+        buttons.add(_buildPageButton(1));
+        buttons.add(_buildEllipsis());
+        for (int i = totalPages - 2; i <= totalPages; i++) {
+          buttons.add(_buildPageButton(i));
+        }
+      } else {
+        // Show: 1 ... (currentPage-1) currentPage (currentPage+1) ... totalPages
+        buttons.add(_buildPageButton(1));
+        buttons.add(_buildEllipsis());
+        for (int i = _currentPage - 1; i <= _currentPage + 1; i++) {
+          buttons.add(_buildPageButton(i));
+        }
+        buttons.add(_buildEllipsis());
+        buttons.add(_buildPageButton(totalPages));
+      }
+    }
+
+    return buttons;
+  }
+
+  Widget _buildPageButton(int pageNumber) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentPage = pageNumber;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: _currentPage == pageNumber ? Colors.pink : Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '$pageNumber',
+          style: TextStyle(
+            color: _currentPage == pageNumber ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEllipsis() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: const Text(
+        '...',
+        style: TextStyle(
+          color: Colors.grey,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -150,7 +228,10 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                             border: InputBorder.none,
                             hintStyle: TextStyle(color: Colors.grey),
                           ),
-                          onChanged: (_) => setState(() {}),
+                          onChanged: (_) => setState(() {
+                            _currentPage =
+                                1; // Reset to first page when searching
+                          }),
                         ),
                       ),
                       if (_searchController.text.isNotEmpty)
@@ -158,6 +239,7 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                           onTap: () {
                             setState(() {
                               _searchController.clear();
+                              _currentPage = 1;
                             });
                           },
                           child: const Icon(Icons.close, color: Colors.grey),
@@ -172,14 +254,23 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                 child: workersAsync.when(
                   data: (workers) {
                     final filteredWorkers = _filterWorkers(workers);
+                    final totalPages =
+                        (filteredWorkers.length / _workersPerPage).ceil();
+
+                    // Ensure current page is valid
+                    if (_currentPage > totalPages && totalPages > 0) {
+                      _currentPage = totalPages;
+                    }
+
                     final startIndex = (_currentPage - 1) * _workersPerPage;
                     final endIndex = (_currentPage * _workersPerPage) >
                             filteredWorkers.length
                         ? filteredWorkers.length
                         : (_currentPage * _workersPerPage);
 
-                    final pageWorkers =
-                        filteredWorkers.sublist(startIndex, endIndex);
+                    final pageWorkers = filteredWorkers.isNotEmpty
+                        ? filteredWorkers.sublist(startIndex, endIndex)
+                        : <WorkerListItem>[];
 
                     if (filteredWorkers.isEmpty) {
                       return Center(
@@ -208,46 +299,15 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                               },
                             ),
                           ),
-                          // Pagination
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                (filteredWorkers.length / _workersPerPage)
-                                    .ceil(),
-                                (index) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _currentPage = index + 1;
-                                      });
-                                    },
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 4),
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: _currentPage == index + 1
-                                            ? Colors.pink
-                                            : Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        '${index + 1}',
-                                        style: TextStyle(
-                                          color: _currentPage == index + 1
-                                              ? Colors.white
-                                              : Colors.black,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
+                          // Pagination with smart ellipsis
+                          if (totalPages > 1)
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: _buildPaginationButtons(totalPages),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     );
@@ -279,15 +339,41 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
+          // Add subtle border for favorite workers
+          border: worker.isFavorite
+              ? Border.all(color: Colors.pink.withOpacity(0.3), width: 2)
+              : null,
         ),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildWorkerImage(worker.imageUrl, 80, 80),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildWorkerImage(worker.imageUrl, 80, 80),
+                  ),
+                  // Favorite indicator
+                  if (worker.isFavorite)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.favorite,
+                          color: Colors.white,
+                          size: 12,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -297,11 +383,14 @@ class _WorkersListScreenState extends ConsumerState<WorkersListScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          worker.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        Expanded(
+                          child: Text(
+                            worker.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         IconButton(

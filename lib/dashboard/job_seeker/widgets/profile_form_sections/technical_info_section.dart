@@ -34,7 +34,7 @@ class TechnicalInfoSection extends ConsumerWidget {
             '100000RWF-149000RWF',
             '150000RWF-199000RWF',
             '200000RWF-299000RWF',
-            '300000RWF and above'
+            '300000RWF +'
           ],
           onChanged: (value) {
             if (value != null) {

@@ -47,7 +47,7 @@ class ProviderAuthNotifier extends StateNotifier<ProviderAuthState> {
   Future<void> _checkAuth() async {
     final isLoggedIn = await _apiService.isLoggedIn();
     final userId = await _apiService.getUserId();
-    
+
     state = state.copyWith(
       isAuthenticated: isLoggedIn,
       userId: userId,
@@ -57,9 +57,9 @@ class ProviderAuthNotifier extends StateNotifier<ProviderAuthState> {
   Future<bool> login(String email, String password) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
-      
+
       final result = await _apiService.loginJobProvider(email, password);
-      
+
       if (result['success']) {
         state = state.copyWith(
           isAuthenticated: true,
@@ -87,9 +87,9 @@ class ProviderAuthNotifier extends StateNotifier<ProviderAuthState> {
   Future<bool> signup(Map<String, dynamic> userData) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
-      
+
       final result = await _apiService.signupJobProvider(userData);
-      
+
       if (result['success']) {
         state = state.copyWith(isLoading: false);
         return true;
@@ -116,7 +116,8 @@ class ProviderAuthNotifier extends StateNotifier<ProviderAuthState> {
 }
 
 // Provider for auth state
-final providerAuthProvider = StateNotifierProvider<ProviderAuthNotifier, ProviderAuthState>((ref) {
+final providerAuthProvider =
+    StateNotifierProvider<ProviderAuthNotifier, ProviderAuthState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   return ProviderAuthNotifier(apiService);
 });

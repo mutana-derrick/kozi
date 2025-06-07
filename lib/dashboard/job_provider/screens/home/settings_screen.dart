@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kozi/dashboard/job_provider/providers/providers.dart';
 import 'package:kozi/dashboard/job_provider/widgets/reset_passsword_modal.dart';
+import 'package:kozi/services/api_service.dart';
 import 'package:kozi/shared/get_in_touch_screen.dart';
 import 'package:kozi/shared/logout_dialog.dart';
 import 'package:kozi/shared/policy_screen.dart';
@@ -12,6 +13,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(providerProfileProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -94,86 +97,104 @@ class SettingsScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            child: Column(
-                              children: [
-                                Row(
+                            child: profileAsync.when(
+                              data: (profile) {
+                                final fullName =
+                                    profile['full_name'] ?? 'Unknown';
+                                final imageFile = profile['image'];
+                                final imageUrl = (imageFile != null &&
+                                        imageFile.isNotEmpty)
+                                    ? '${ApiService.baseUrl}/provider/uploads/profile/$imageFile'
+                                    : null;
+
+                                return Column(
                                   children: [
-                                    // Profile image
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.asset(
-                                        'assets/images/profile_picture.png',
-                                        width: 80,
-                                        height: 80,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                          width: 80,
-                                          height: 80,
-                                          color: const Color(0xFF4CE5B1),
-                                          child: const Icon(Icons.person,
-                                              color: Colors.white, size: 40),
+                                    Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          child: imageUrl != null
+                                              ? Image.network(
+                                                  imageUrl,
+                                                  width: 80,
+                                                  height: 80,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error,
+                                                          stackTrace) =>
+                                                      _fallbackImage(),
+                                                )
+                                              : _fallbackImage(),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                fullName,
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              const Text(
+                                                'You are hiring through Kozi. Thank you for empowering talents!',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF666666),
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        context.push('/profile');
+                                        ref
+                                            .read(selectedNavIndexProvider
+                                                .notifier)
+                                            .state = 3;
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFFEE5A9E),
+                                        minimumSize:
+                                            const Size(double.infinity, 40),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Update',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
-
-                                    // Profile details
-                                    const Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Mutesi Allen',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            'I am 24 years old, I Live in Kigali and Specialist in housekeeping and cleaning......',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF666666),
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
                                   ],
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // Navigate to profile page
-                                    context.push('/profile');
-
-                                    ref
-                                        .read(selectedNavIndexProvider.notifier)
-                                        .state = 3;
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFEE5A9E),
-                                    minimumSize:
-                                        const Size(double.infinity, 40),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                );
+                              },
+                              loading: () => const Center(
+                                  child: CircularProgressIndicator()),
+                              error: (err, _) => Row(
+                                children: [
+                                  _fallbackImage(),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Text('Could not load profile info.',
+                                        style: TextStyle(color: Colors.red)),
                                   ),
-                                  child: const Text(
-                                    'Update',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
 
@@ -188,7 +209,6 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 16),
 
-                          // Settings options
                           _buildSettingsOption(
                             icon: Icons.lock,
                             iconColor: Colors.white,
@@ -274,8 +294,17 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _handleLogout(BuildContext context, WidgetRef ref) {
-  CustomLogoutDialog.show(context);
-}
+    CustomLogoutDialog.show(context);
+  }
+
+  Widget _fallbackImage() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: const Color(0xFF4CE5B1),
+      child: const Icon(Icons.person, color: Colors.white, size: 40),
+    );
+  }
 
   Widget _buildSettingsOption({
     required IconData icon,

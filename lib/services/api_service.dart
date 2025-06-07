@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,7 +11,7 @@ import 'package:kozi/dashboard/job_provider/models/service_category.dart';
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.0.104:3000";
+  static const String baseUrl = "http://192.168.1.82:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -1263,9 +1265,11 @@ class ApiService {
       // Handle profile image
       final formData = FormData();
 
-      // Add text fields
+      // Add text fields (excluding profileImagePath)
       data.forEach((key, value) {
-        if (key != 'profileImagePath' && value != null) {
+        if (key != 'profileImagePath' &&
+            value != null &&
+            value.toString().isNotEmpty) {
           formData.fields.add(MapEntry(key, value.toString()));
         }
       });
@@ -1274,15 +1278,28 @@ class ApiService {
       if (data['profileImagePath'] != null &&
           data['profileImagePath'].toString().isNotEmpty) {
         try {
-          formData.files.add(MapEntry(
-            'picture',
-            await MultipartFile.fromFile(data['profileImagePath'],
-                filename: data['profileImagePath'].split('/').last),
-          ));
+          final imagePath = data['profileImagePath'].toString();
+          final file = File(imagePath);
+
+          // Check if file exists
+          if (await file.exists()) {
+            formData.files.add(MapEntry(
+              'image', // This should match your backend field name
+              await MultipartFile.fromFile(
+                imagePath,
+                filename: imagePath.split('/').last,
+              ),
+            ));
+          } else {
+            print('Profile image file does not exist: $imagePath');
+          }
         } catch (e) {
           print('Error adding profile image file: $e');
         }
       }
+
+      print('Sending data to API: ${formData.fields}');
+      print('Sending files: ${formData.files.length} files');
 
       final response = await _dio.put(
         '$baseUrl/provider/update_profile/$userId',
@@ -1292,13 +1309,17 @@ class ApiService {
             'Authorization': 'Bearer $token',
             'Content-Type': 'multipart/form-data',
           },
+          validateStatus: (status) => status! < 500, // Accept 4xx status codes
         ),
       );
+
+      print('API Response Status: ${response.statusCode}');
+      print('API Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'message': 'Profile updated successfully',
+          'message': response.data['message'] ?? 'Profile updated successfully',
         };
       } else {
         return {
@@ -1308,6 +1329,13 @@ class ApiService {
       }
     } catch (e) {
       print('Error updating provider profile: $e');
+      if (e is DioException) {
+        print('DioException details: ${e.response?.data}');
+        return {
+          'success': false,
+          'message': e.response?.data['message'] ?? 'Network error occurred',
+        };
+      }
       return {
         'success': false,
         'message': 'An error occurred: $e',
@@ -1421,6 +1449,7 @@ class ApiService {
     }
   }
 
+//count jobseekers
   Future<int> getSeekersCount() async {
     try {
       final token = await _storage.read(key: 'auth_token');
@@ -1441,11 +1470,33 @@ class ApiService {
     }
   }
 
-  Future<int> getProvidersCount() async {
+//count companies
+  Future<int> getCompanyProvidersCount() async {
     try {
       final token = await _storage.read(key: 'auth_token');
       final response = await _dio.get(
         '$baseUrl/providers/count',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['count'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      print('Error fetching providers count: $e');
+      return 0;
+    }
+  }
+
+//count individuals
+  Future<int> getIndividualProvidersCount() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      final response = await _dio.get(
+        '$baseUrl/providers/individual/count',
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),
@@ -1548,10 +1599,8 @@ class ApiService {
       final response =
           await _dio.get('$baseUrl/provider/job_provider_id/$usersId');
 
-      if (response.statusCode == 200 &&
-          response.data is List &&
-          response.data.isNotEmpty) {
-        return response.data[0]['job_provider_id'];
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data['job_provider_id'];
       } else {
         throw Exception('Job provider ID not found');
       }

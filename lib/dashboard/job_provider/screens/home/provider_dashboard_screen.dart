@@ -110,8 +110,8 @@ class ProviderDashboardScreen extends ConsumerWidget {
                                     iconData: FontAwesomeIcons.users,
                                   ),
                                   _buildStatCard(
-                                    count: statsData['employers'] ?? 0,
-                                    label: 'Employers',
+                                    count: statsData['individuals'] ?? 0,
+                                    label: 'Individuals',
                                     color: Colors.pink[100]!,
                                     iconData: FontAwesomeIcons.userTie,
                                   ),

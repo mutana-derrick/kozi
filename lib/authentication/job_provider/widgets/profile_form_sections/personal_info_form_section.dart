@@ -43,8 +43,6 @@ class _PersonalInfoFormSectionState
       isValid = false;
     }
 
-    // Removed date of birth validation
-
     // Validate gender
     final genderError =
         FormValidation.validateDropdown(profileState.gender, 'gender');
@@ -57,6 +55,14 @@ class _PersonalInfoFormSectionState
     final telephoneError = FormValidation.validatePhone(profileState.telephone);
     if (telephoneError != null) {
       errorsMap['telephone'] = telephoneError;
+      isValid = false;
+    }
+
+    // Validate category
+    final categoryError =
+        FormValidation.validateDropdown(profileState.category, 'category');
+    if (categoryError != null) {
+      errorsMap['category'] = categoryError;
       isValid = false;
     }
 
@@ -166,8 +172,6 @@ class _PersonalInfoFormSectionState
           ),
           const SizedBox(height: 16),
 
-          // Date of Birth field removed
-
           // Gender
           buildDropdownField(
             context,
@@ -210,6 +214,30 @@ class _PersonalInfoFormSectionState
             },
             keyboardType: TextInputType.phone,
             errorText: errors['telephone'],
+            isRequired: true,
+          ),
+          const SizedBox(height: 16),
+
+          // Category
+          buildDropdownField(
+            context,
+            label: 'Category',
+            value: profileState.category.isEmpty
+                ? 'Select Category'
+                : profileState.category,
+            items: const ['individual', 'company'],
+            onChanged: (value) {
+              if (value != null) {
+                ref.read(profileProvider.notifier).updateCategory(value);
+                // Clear error when selected
+                final currentErrors = Map<String, String?>.from(
+                    ref.read(personalInfoErrorsProvider));
+                currentErrors.remove('category');
+                ref.read(personalInfoErrorsProvider.notifier).state =
+                    currentErrors;
+              }
+            },
+            errorText: errors['category'],
             isRequired: true,
           ),
           const SizedBox(height: 16),

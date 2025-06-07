@@ -54,7 +54,6 @@ final categoriesProvider = FutureProvider<List<ServiceCategory>>((ref) async {
 });
 
 // Provider for fetching workers by category ID
-// Provider for fetching workers by category ID
 final categoryWorkersProvider =
     FutureProvider.family<List<dynamic>, String>((ref, categoryId) async {
   final apiService = ref.watch(apiServiceProvider);
@@ -131,40 +130,43 @@ final mockWorkersProvider = Provider<List<Worker>>((ref) {
 
 // Stats Provider
 final statsProvider = FutureProvider<Map<String, int>>((ref) async {
-  final dio = ref.read(dioProvider);
+  final apiService = ref.read(apiServiceProvider);
 
   try {
-    // Create a map to store the counts
-    final stats = <String, int>{
-      'workers': 0,
-      'employers': 0,
-      'companies': 0,
+    final workers = await apiService.getSeekersCount();
+    final companies = await apiService.getCompanyProvidersCount(); // companies
+    final individuals = await apiService
+        .getIndividualProvidersCount(); // actually individual count
+
+    return {
+      'workers': workers,
+      'companies': companies,
+      'individuals': individuals,
     };
-
-    const baseUrl = ApiService.baseUrl;
-
-    // Fetch job seeker count
-    final seekersResponse = await dio.get("$baseUrl/seekers/count");
-    if (seekersResponse.statusCode == 200) {
-      stats['workers'] = seekersResponse.data['count'] ?? 0;
-    }
-
-    // Fetch job providers count
-    final providersResponse = await dio.get("$baseUrl/providers/count");
-    if (providersResponse.statusCode == 200) {
-      stats['employers'] = providersResponse.data['count'] ?? 0;
-    }
-
-    return stats;
   } catch (e) {
     print('Error fetching stats: $e');
     return {
       'workers': 0,
-      'employers': 0,
       'companies': 0,
+      'individuals': 0,
     };
   }
 });
+
+final providerProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final apiService = ref.watch(apiServiceProvider);
+
+  final userId = await apiService.getUserId(); // Already handles secure storage/email fallback
+  if (userId == null) throw Exception('User ID not found');
+
+  final response = await apiService.getProviderProfile(userId);
+  if (response['success'] == true) {
+    return response['data'];
+  } else {
+    throw Exception(response['message'] ?? 'Failed to load provider profile');
+  }
+});
+
 
 // Selected bottom nav index provider
 final selectedNavIndexProvider = StateProvider<int>((ref) => 0);

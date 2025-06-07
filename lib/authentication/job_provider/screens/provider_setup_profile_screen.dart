@@ -12,10 +12,12 @@ class ProviderSetupProfileScreen extends ConsumerStatefulWidget {
   const ProviderSetupProfileScreen({super.key});
 
   @override
-  ConsumerState<ProviderSetupProfileScreen> createState() => _ProviderSetupProfileScreenState();
+  ConsumerState<ProviderSetupProfileScreen> createState() =>
+      _ProviderSetupProfileScreenState();
 }
 
-class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfileScreen> {
+class _ProviderSetupProfileScreenState
+    extends ConsumerState<ProviderSetupProfileScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -54,10 +56,11 @@ class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfil
         profileNotifier.updateLastName(userData['last_name'] ?? '');
         profileNotifier.updateGender(userData['gender'] ?? '');
         profileNotifier.updateTelephone(userData['telephone'] ?? '');
-        // Date of birth is no longer needed but we'll keep it for backward compatibility
-        profileNotifier.updateDateOfBirth(userData['date_of_birth'] ?? 'DD/MM/YYYY');
-        // Update country field if available in the API response
+        profileNotifier
+            .updateDateOfBirth(userData['date_of_birth'] ?? 'DD/MM/YYYY');
         profileNotifier.updateCountry(userData['country'] ?? '');
+        profileNotifier.updateCategory(
+            userData['category'] ?? ''); // Added category loading
         profileNotifier.updateProvince(userData['province'] ?? '');
         profileNotifier.updateDistrict(userData['district'] ?? '');
         profileNotifier.updateSector(userData['sector'] ?? '');
@@ -65,9 +68,45 @@ class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfil
         profileNotifier.updateVillage(userData['village'] ?? '');
         profileNotifier.updateDescription(userData['description'] ?? '');
 
-        // If the user has already completed their profile, we can start at a different step
-        if (userData['province'] != null && userData['province'].toString().isNotEmpty) {
-          profileNotifier.goToStep(1); // Go to address page if personal info is filled
+        // Set profile image path if available
+        if (userData['image'] != null &&
+            userData['image'].toString().isNotEmpty) {
+          // You might need to construct the full image URL here
+          // profileNotifier.updateProfileImagePath(userData['image']);
+        }
+
+        // Determine which step to start on based on completion
+        bool personalInfoComplete = (userData['first_name'] != null &&
+                userData['first_name'].toString().isNotEmpty) &&
+            (userData['last_name'] != null &&
+                userData['last_name'].toString().isNotEmpty) &&
+            (userData['gender'] != null &&
+                userData['gender'].toString().isNotEmpty) &&
+            (userData['telephone'] != null &&
+                userData['telephone'].toString().isNotEmpty) &&
+            (userData['category'] != null &&
+                userData['category'].toString().isNotEmpty);
+
+        bool addressInfoComplete = (userData['country'] != null &&
+                userData['country'].toString().isNotEmpty) &&
+            (userData['province'] != null &&
+                userData['province'].toString().isNotEmpty) &&
+            (userData['district'] != null &&
+                userData['district'].toString().isNotEmpty) &&
+            (userData['sector'] != null &&
+                userData['sector'].toString().isNotEmpty) &&
+            (userData['cell'] != null &&
+                userData['cell'].toString().isNotEmpty) &&
+            (userData['village'] != null &&
+                userData['village'].toString().isNotEmpty);
+
+        if (personalInfoComplete && !addressInfoComplete) {
+          profileNotifier.goToStep(1); // Go to address page
+        } else if (!personalInfoComplete) {
+          profileNotifier.goToStep(0); // Stay on personal info page
+        } else {
+          profileNotifier
+              .goToStep(1); // Default to address page if both are complete
         }
       } else {
         setState(() {
@@ -78,6 +117,7 @@ class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfil
       setState(() {
         _errorMessage = 'Error loading profile: $e';
       });
+      print('Error loading provider profile: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -105,14 +145,14 @@ class _ProviderSetupProfileScreenState extends ConsumerState<ProviderSetupProfil
         ),
       );
     }
-    
+
     return _ProfileScreenContent(errorMessage: _errorMessage);
   }
 }
 
 class _ProfileScreenContent extends ConsumerWidget {
   final String? errorMessage;
-  
+
   const _ProfileScreenContent({this.errorMessage});
 
   @override
