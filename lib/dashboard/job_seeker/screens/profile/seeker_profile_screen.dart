@@ -29,6 +29,11 @@ class _ProfileScreenContent extends ConsumerStatefulWidget {
 
 class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
   final _formKey = GlobalKey<FormState>();
+  
+  // Keys for accessing section validation methods
+  final GlobalKey<PersonalInfoSectionState> _personalInfoKey = GlobalKey();
+  final GlobalKey<AddressInfoSectionState> _addressInfoKey = GlobalKey();
+  final GlobalKey<TechnicalInfoSectionState> _technicalInfoKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +133,24 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
                     ProfileSetupProgressBar(
                       currentStep: profileState.currentStep,
                       onStepTapped: (step) {
-                        ref.read(profileProvider.notifier).goToStep(step);
+                        // Validate current section before allowing navigation
+                        bool canNavigate = true;
+                        if (step > profileState.currentStep) {
+                          // Only validate if moving forward
+                          canNavigate = _validateCurrentSection(profileState.currentStep);
+                        }
+                        
+                        if (canNavigate) {
+                          ref.read(profileProvider.notifier).goToStep(step);
+                        } else {
+                          // Show error message if validation fails
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill in all required fields before proceeding.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       },
                     ),
 
@@ -162,13 +184,27 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
   Widget _buildCurrentFormSection(int step) {
     switch (step) {
       case 0:
-        return const PersonalInfoSection();
+        return PersonalInfoSection(key: _personalInfoKey);
       case 1:
-        return const AddressInfoSection();
+        return AddressInfoSection(key: _addressInfoKey);
       case 2:
-        return const TechnicalInfoSection();
+        return TechnicalInfoSection(key: _technicalInfoKey);
       default:
-        return const PersonalInfoSection();
+        return PersonalInfoSection(key: _personalInfoKey);
+    }
+  }
+
+  // Method to validate current section
+  bool _validateCurrentSection(int currentStep) {
+    switch (currentStep) {
+      case 0:
+        return _personalInfoKey.currentState?.validateFields() ?? false;
+      case 1:
+        return _addressInfoKey.currentState?.validateFields() ?? false;
+      case 2:
+        return _technicalInfoKey.currentState?.validateFields() ?? false;
+      default:
+        return false;
     }
   }
 
@@ -214,13 +250,37 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
             ),
             onPressed: () {
               if (currentStep < 2) {
-                ref.read(profileProvider.notifier).goToNextStep();
-              } else {
-                // Save profile information
-                if (_formKey.currentState!.validate()) {
+                // Validate current section before proceeding
+                if (_validateCurrentSection(currentStep)) {
+                  ref.read(profileProvider.notifier).goToNextStep();
+                } else {
+                  // Show error message if validation fails
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Profile updated successfully!')),
+                      content: Text('Please fill in all required fields before proceeding.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } else {
+                // Final step - validate and save profile
+                if (_validateCurrentSection(currentStep)) {
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Profile updated successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  // You can add additional logic here to save the profile
+                  // For example: ref.read(profileProvider.notifier).saveProfile();
+                } else {
+                  // Show error message if validation fails
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please fill in all required fields before saving.'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }

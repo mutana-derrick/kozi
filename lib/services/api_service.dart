@@ -845,130 +845,43 @@ class ApiService {
 // Apply for a job
   Future<Map<String, dynamic>> applyForJob(String jobId) async {
     try {
-      print("Starting apply for job process for job ID: $jobId");
-
-      // Check authentication
       final token = await _storage.read(key: 'auth_token');
       if (token == null) {
-        print("No auth token found - user not authenticated");
         return {'success': false, 'message': 'Not authenticated'};
       }
 
-      // Get email from storage
-      final email = await _storage.read(key: 'user_email');
-      if (email == null) {
-        print("No user email found in storage");
-        return {'success': false, 'message': 'User email not found'};
-      }
-
-      print("Found user email: $email");
-
-      // Use email to get user ID
-      print("Getting user ID for email: $email");
-      final userId = await getUserIdByEmail(email);
+      final userId = await getUserId();
       if (userId == null) {
-        print("Failed to get user ID from email");
         return {'success': false, 'message': 'User ID not found'};
       }
-
-      print("Successfully retrieved user ID: $userId");
-
-      // Use user ID to get profile data
-      print("Fetching user profile data");
-      final profileResult = await getUserProfile(userId);
-
-      if (!profileResult['success']) {
-        print("Failed to fetch profile: ${profileResult['message']}");
-        return {'success': false, 'message': 'Failed to fetch profile data'};
-      }
-
-      if (profileResult['data'] == null) {
-        print("Profile data is null");
-        return {'success': false, 'message': 'Profile data not found'};
-      }
-
-      // Extract job_seeker_id from profile data
-      final profileData = profileResult['data'];
-      print("Profile data: $profileData");
-
-      // Try to use job_seeker_id if available, otherwise use userId as fallback
-      final jobSeekerId = profileData['job_seeker_id'] ?? userId;
-      print("Using job_seeker_id: $jobSeekerId");
-
-      // Make the API call to apply for the job
-      print("Making API request to apply for job");
-      print("Request data: { job_id: $jobId, job_seeker_id: $jobSeekerId }");
 
       final response = await _dio.post(
         '$baseUrl/seeker/apply',
         data: {
           'job_id': jobId,
-          'job_seeker_id': jobSeekerId,
+          'users_id': userId,
         },
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),
       );
 
-      print("API response status: ${response.statusCode}");
-      print("API response data: ${response.data}");
-
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        print("Successfully applied for job");
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return {
           'success': true,
-          'message': 'Successfully applied for job',
+          'message': response.data['message'] ?? 'Successfully applied for job',
         };
       } else {
-        print("Failed to apply for job");
         return {
           'success': false,
           'message': response.data['message'] ?? 'Failed to apply for job',
         };
       }
     } on DioException catch (e) {
-      print("DioException occurred: ${e.message}");
-
-      // On a 400 error, try one more time with integer format
-      if (e.response?.statusCode == 400) {
-        try {
-          print("Got 400 error, trying with integer format");
-
-          final token = await _storage.read(key: 'auth_token');
-          final jobIdInt = int.tryParse(jobId);
-          final userId = await getUserId();
-
-          if (jobIdInt != null && userId != null) {
-            final userIdInt = int.tryParse(userId);
-
-            final response = await _dio.post(
-              '$baseUrl/seeker/apply',
-              data: {
-                'job_id': jobIdInt,
-                'job_seeker_id': userIdInt ?? userId,
-              },
-              options: Options(
-                headers: {'Authorization': 'Bearer $token'},
-              ),
-            );
-
-            if (response.statusCode == 201 || response.statusCode == 200) {
-              print("Successfully applied for job with integer format");
-              return {
-                'success': true,
-                'message': 'Successfully applied for job',
-              };
-            }
-          }
-        } catch (retryError) {
-          print("Error during retry: $retryError");
-        }
-      }
-
       if (e.response?.statusCode == 409) {
         return {
           'success': false,
-          'message': 'You have already applied for this job'
+          'message': 'You have already applied for this job',
         };
       }
 
@@ -977,7 +890,6 @@ class ApiService {
         'message': 'Network error: ${e.message}',
       };
     } catch (e) {
-      print("General exception occurred: $e");
       return {
         'success': false,
         'message': 'An error occurred: $e',

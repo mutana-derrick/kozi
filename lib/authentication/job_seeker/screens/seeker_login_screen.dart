@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kozi/utils/form_validation.dart'; 
+import 'package:kozi/utils/form_validation.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/forgot_password/email_verification_modal.dart';
 
@@ -79,7 +79,8 @@ class _SeekerLoginScreenState extends ConsumerState<SeekerLoginScreen> {
 
     if (success) {
       // Navigate to setup profile or dashboard based on your app flow
-      context.go('/seekersetupprofile');
+      //context.go('/seekersetupprofile');
+      context.go('/seekerdashboardscreen');
     } else {
       // Show error from auth state
       final authState = ref.read(authProvider);

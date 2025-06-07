@@ -107,6 +107,7 @@ Apply now on Kozi!
   Widget _buildJobDetails(BuildContext context, WidgetRef ref, Job job,
       bool isLoading, String? errorMessage) {
     final isFavorite = ref.watch(currentJobFavoriteStatusProvider(job.id));
+    final apiService = ref.read(apiServiceProvider);
 
     return Stack(
       children: [
@@ -379,34 +380,34 @@ Apply now on Kozi!
 
                             const SizedBox(height: 16),
                             // Key responsibilities
-                            const Text(
-                              'Key responsibilities include:',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            // const Text(
+                            //   'Key responsibilities include:',
+                            //   style: TextStyle(
+                            //     fontSize: 16,
+                            //     fontWeight: FontWeight.bold,
+                            //   ),
+                            // ),
                             const SizedBox(height: 8),
 
                             // Responsibilities list
-                            _buildResponsibilitiesList(),
+                            // _buildResponsibilitiesList(),
 
                             const SizedBox(height: 8),
                             // View counter
-                            Row(
-                              children: [
-                                const Icon(Icons.visibility,
-                                    size: 16, color: Colors.purple),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'viewed ${job.views} times',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.purple,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            // Row(
+                            //   children: [
+                            //     const Icon(Icons.visibility,
+                            //         size: 16, color: Colors.purple),
+                            //     const SizedBox(width: 4),
+                            //     Text(
+                            //       'viewed ${job.views} times',
+                            //       style: const TextStyle(
+                            //         fontSize: 14,
+                            //         color: Colors.purple,
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                           ],
                         ),
                       ),
@@ -442,8 +443,21 @@ Apply now on Kozi!
                     Expanded(
                       flex: 1,
                       child: ElevatedButton(
-                        onPressed: () =>
-                            _navigateToApplicationForm(context, job.id),
+                        onPressed: () async {
+                          final result = await apiService.applyForJob(jobId);
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    result['message'] ?? 'Unknown response'),
+                                backgroundColor: result['success']
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            );
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEA60A7),
                           foregroundColor: Colors.white,
@@ -464,75 +478,80 @@ Apply now on Kozi!
       ],
     );
   }
-
-  Widget _buildResponsibilitiesList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. Leadership and Strategy
-        const Text(
-          '1. Leadership and Strategy',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _buildBulletPoint(
-            'Manage Operations: Oversee day-to-day sales agents and operational staff'),
-        _buildBulletPoint('to meet organizational goals.'),
-
-        const SizedBox(height: 8),
-        // 2. Business Development
-        const Text(
-          '2. Business Development',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _buildBulletPoint('Market Expansion: Identify and seize opportunities'),
-        _buildBulletPoint(
-            'Partnerships: Build relationships with key stakeholders and potential partners'),
-        _buildBulletPoint('Brand Promotion: Promote the brand'),
-
-        const SizedBox(height: 8),
-        // 3. Reporting and Performance
-        const Text(
-          '3. Reporting and Performance',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16.0, top: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-Future<void> _navigateToApplicationForm(
-    BuildContext context, String jobId) async {
-  // Simply navigate to the application form screen with the job ID
-  if (context.mounted) {
-    context.push('/apply/$jobId/form');
-  }
-}
+
+
+//**codes to be activated when we add the application with the cv */
+
+//   Widget _buildResponsibilitiesList() {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         // 1. Leadership and Strategy
+//         const Text(
+//           '1. Leadership and Strategy',
+//           style: TextStyle(
+//             fontSize: 14,
+//             fontWeight: FontWeight.bold,
+//           ),
+//         ),
+//         const SizedBox(height: 4),
+//         _buildBulletPoint(
+//             'Manage Operations: Oversee day-to-day sales agents and operational staff'),
+//         _buildBulletPoint('to meet organizational goals.'),
+
+//         const SizedBox(height: 8),
+//         // 2. Business Development
+//         const Text(
+//           '2. Business Development',
+//           style: TextStyle(
+//             fontSize: 14,
+//             fontWeight: FontWeight.bold,
+//           ),
+//         ),
+//         const SizedBox(height: 4),
+//         _buildBulletPoint('Market Expansion: Identify and seize opportunities'),
+//         _buildBulletPoint(
+//             'Partnerships: Build relationships with key stakeholders and potential partners'),
+//         _buildBulletPoint('Brand Promotion: Promote the brand'),
+
+//         const SizedBox(height: 8),
+//         // 3. Reporting and Performance
+//         const Text(
+//           '3. Reporting and Performance',
+//           style: TextStyle(
+//             fontSize: 14,
+//             fontWeight: FontWeight.bold,
+//           ),
+//         ),
+//       ],
+//     );
+//   } *** this will be the curl bracket to close the whole file ***
+
+//   Widget _buildBulletPoint(String text) {
+//     return Padding(
+//       padding: const EdgeInsets.only(left: 16.0, top: 4.0),
+//       child: Row(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+//           Expanded(
+//             child: Text(
+//               text,
+//               style: const TextStyle(fontSize: 14),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+
+// Future<void> _navigateToApplicationForm(
+//     BuildContext context, String jobId) async {
+//   // Simply navigate to the application form screen with the job ID
+//   if (context.mounted) {
+//     context.push('/apply/$jobId/form');
+//   }
+// }
