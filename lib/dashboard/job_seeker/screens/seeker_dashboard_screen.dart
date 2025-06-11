@@ -7,6 +7,7 @@ import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/job_card_widget.dart'; // Import the new widget
 import 'package:kozi/shared/advertisement_carousel.dart';
+import 'package:kozi/services/api_service.dart';
 
 class SeekerDashboardScreen extends ConsumerWidget {
   const SeekerDashboardScreen({super.key});
@@ -281,7 +282,7 @@ class SeekerDashboardScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             child: imageUrl.isNotEmpty
                 ? Image.network(
-                    '$baseApiUrl/uploads/$imageUrl',
+                    '${ApiService.baseUrl}/uploads/$imageUrl',
                     width: 80,
                     height: 80,
                     fit: BoxFit.cover,
@@ -573,7 +574,5 @@ class SeekerDashboardScreen extends ConsumerWidget {
     );
   }
 
-  // Add a constant for the base API URL
-  static const String baseApiUrl =
-      'http://192.168.0.100:3000'; // Change this to your actual API base URL
+  // Change this to your actual API base URL
 }

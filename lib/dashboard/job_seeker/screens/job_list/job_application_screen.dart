@@ -8,6 +8,7 @@ import 'package:kozi/dashboard/job_seeker/models/job.dart';
 import 'package:kozi/dashboard/job_seeker/providers/jobs_provider.dart';
 import 'package:kozi/dashboard/job_seeker/screens/job_list/job_list_screen.dart';
 import 'package:kozi/shared/date_formatter.dart';
+import 'package:kozi/shared/show_result_dialog.dart';
 import 'package:kozi/utils/text_utils.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -447,14 +448,10 @@ Apply now on Kozi!
                           final result = await apiService.applyForJob(jobId);
 
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    result['message'] ?? 'Unknown response'),
-                                backgroundColor: result['success']
-                                    ? Colors.green
-                                    : Colors.red,
-                              ),
+                            await showResultDialog(
+                              context: context,
+                              message: result['message'] ?? 'Unknown response',
+                              isSuccess: result['success'] ?? false,
                             );
                           }
                         },

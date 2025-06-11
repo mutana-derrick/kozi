@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/utils/form_validation.dart';
 
-final personalInfoErrorsProvider =
-    StateProvider<Map<String, String?>>((ref) => {});
+final personalInfoErrorsProvider = StateProvider<Map<String, String?>>((ref) => {});
 
 class PersonalInfoSection extends ConsumerStatefulWidget {
   const PersonalInfoSection({super.key});
@@ -14,13 +13,35 @@ class PersonalInfoSection extends ConsumerStatefulWidget {
 }
 
 class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _telephoneController;
+  late TextEditingController _dobController;
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = ref.read(profileProvider);
+    _firstNameController = TextEditingController(text: profile.firstName);
+    _lastNameController = TextEditingController(text: profile.lastName);
+    _telephoneController = TextEditingController(text: profile.telephone);
+    _dobController = TextEditingController(text: profile.dateOfBirth);
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _telephoneController.dispose();
+    _dobController.dispose();
+    super.dispose();
+  }
+
   bool validateFields() {
-    final ref = this.ref;
     final profile = ref.read(profileProvider);
     final errors = <String, String?>{};
     bool isValid = true;
 
-    // Validate first name
     final firstNameError =
         FormValidation.validateRequired(profile.firstName, 'First Name');
     if (firstNameError != null) {
@@ -28,7 +49,6 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
       isValid = false;
     }
 
-    // Validate last name
     final lastNameError =
         FormValidation.validateRequired(profile.lastName, 'Last Name');
     if (lastNameError != null) {
@@ -36,14 +56,12 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
       isValid = false;
     }
 
-    // Validate phone number
     final phoneError = FormValidation.validatePhone(profile.telephone);
     if (phoneError != null) {
       errors['telephone'] = phoneError;
       isValid = false;
     }
 
-    // Validate date of birth
     final dobError =
         FormValidation.validateRequired(profile.dateOfBirth, 'Date of Birth');
     if (dobError != null) {
@@ -51,7 +69,6 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
       isValid = false;
     }
 
-    // Validate gender
     final genderError =
         FormValidation.validateDropdown(profile.gender, 'Gender');
     if (genderError != null) {
@@ -59,7 +76,6 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
       isValid = false;
     }
 
-    // Validate disability
     final disabilityError =
         FormValidation.validateDropdown(profile.disability, 'Disability');
     if (disabilityError != null) {
@@ -90,72 +106,73 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
           ),
           const SizedBox(height: 16),
 
-          // First Name
           buildEditableField(
             label: 'First Name',
-            value: profile.firstName,
+            controller: _firstNameController,
             errorText: errors['firstName'],
             isRequired: true,
             onChanged: (val) {
               ref.read(profileProvider.notifier).updateFirstName(val);
-              final currentErrors = {...ref.read(personalInfoErrorsProvider)};
-              currentErrors.remove('firstName');
-              ref.read(personalInfoErrorsProvider.notifier).state =
-                  currentErrors;
+              ref.read(personalInfoErrorsProvider.notifier).update((state) {
+                final updated = {...state};
+                updated.remove('firstName');
+                return updated;
+              });
             },
           ),
           const SizedBox(height: 16),
 
-          // Last Name
           buildEditableField(
             label: 'Last Name',
-            value: profile.lastName,
+            controller: _lastNameController,
             errorText: errors['lastName'],
             isRequired: true,
             onChanged: (val) {
               ref.read(profileProvider.notifier).updateLastName(val);
-              final currentErrors = {...ref.read(personalInfoErrorsProvider)};
-              currentErrors.remove('lastName');
-              ref.read(personalInfoErrorsProvider.notifier).state =
-                  currentErrors;
+              ref.read(personalInfoErrorsProvider.notifier).update((state) {
+                final updated = {...state};
+                updated.remove('lastName');
+                return updated;
+              });
             },
           ),
           const SizedBox(height: 16),
 
-          // Phone Number
           buildEditableField(
             label: 'Phone Number',
-            value: profile.telephone,
+            controller: _telephoneController,
             errorText: errors['telephone'],
             isRequired: true,
             keyboardType: TextInputType.phone,
             onChanged: (val) {
               ref.read(profileProvider.notifier).updateTelephone(val);
-              final currentErrors = {...ref.read(personalInfoErrorsProvider)};
-              currentErrors.remove('telephone');
-              ref.read(personalInfoErrorsProvider.notifier).state =
-                  currentErrors;
+              ref.read(personalInfoErrorsProvider.notifier).update((state) {
+                final updated = {...state};
+                updated.remove('telephone');
+                return updated;
+              });
             },
           ),
           const SizedBox(height: 16),
 
-          // Date of Birth
           buildDateField(
             label: 'Date of Birth',
             value: profile.dateOfBirth,
+            controller: _dobController,
             errorText: errors['dateOfBirth'],
             isRequired: true,
             onChanged: (val) {
               ref.read(profileProvider.notifier).updateDateOfBirth(val);
-              final currentErrors = {...ref.read(personalInfoErrorsProvider)};
-              currentErrors.remove('dateOfBirth');
-              ref.read(personalInfoErrorsProvider.notifier).state =
-                  currentErrors;
+              _dobController.text = val;
+              ref.read(personalInfoErrorsProvider.notifier).update((state) {
+                final updated = {...state};
+                updated.remove('dateOfBirth');
+                return updated;
+              });
             },
           ),
           const SizedBox(height: 16),
 
-          // Gender
           buildDropdownField(
             context,
             label: 'Gender',
@@ -166,16 +183,16 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
             onChanged: (value) {
               if (value != null) {
                 ref.read(profileProvider.notifier).updateGender(value);
-                final currentErrors = {...ref.read(personalInfoErrorsProvider)};
-                currentErrors.remove('gender');
-                ref.read(personalInfoErrorsProvider.notifier).state =
-                    currentErrors;
+                ref.read(personalInfoErrorsProvider.notifier).update((state) {
+                  final updated = {...state};
+                  updated.remove('gender');
+                  return updated;
+                });
               }
             },
           ),
           const SizedBox(height: 16),
 
-          // Disability
           buildDropdownField(
             context,
             label: 'Do you have any Disability?',
@@ -198,10 +215,11 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
             onChanged: (value) {
               if (value != null) {
                 ref.read(profileProvider.notifier).updateDisability(value);
-                final currentErrors = {...ref.read(personalInfoErrorsProvider)};
-                currentErrors.remove('disability');
-                ref.read(personalInfoErrorsProvider.notifier).state =
-                    currentErrors;
+                ref.read(personalInfoErrorsProvider.notifier).update((state) {
+                  final updated = {...state};
+                  updated.remove('disability');
+                  return updated;
+                });
               }
             },
           ),
@@ -213,16 +231,12 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
 
   Widget buildEditableField({
     required String label,
-    required String value,
+    required TextEditingController controller,
     required Function(String) onChanged,
     String? errorText,
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final controller = TextEditingController(text: value);
-    controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: controller.text.length));
-
     final hasError = errorText != null;
 
     return Column(
@@ -307,6 +321,7 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
   Widget buildDateField({
     required String label,
     required String value,
+    required TextEditingController controller,
     required Function(String) onChanged,
     String? errorText,
     bool isRequired = false,
@@ -489,24 +504,15 @@ class PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: items.contains(value) ? value : null,
-              hint: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: hasError
-                            ? ValidationColors.errorRed
-                            : const Color(0xFF5C6BC0),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  if (hasError)
-                    const Icon(Icons.error,
-                        color: ValidationColors.errorRed, size: 20),
-                ],
+              hint: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: hasError
+                      ? ValidationColors.errorRed
+                      : const Color(0xFF5C6BC0),
+                  fontWeight: FontWeight.w400,
+                ),
               ),
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down,

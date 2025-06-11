@@ -11,7 +11,7 @@ import 'package:kozi/dashboard/job_provider/models/service_category.dart';
 class ApiService {
   // Base URL should point to your local server
   // For physical devices, use your computer's local IP address, not localhost
-  static const String baseUrl = "http://192.168.1.82:3000";
+  static const String baseUrl = "http://192.168.1.74:3000";
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -504,13 +504,10 @@ class ApiService {
   Future<Map<String, dynamic>> updateUserProfile(
       String userId, Map<String, dynamic> data) async {
     try {
-      // Log the data being sent for debugging
       print('Updating profile for user $userId with data: $data');
 
-      // Create FormData for file uploads
       final formData = FormData();
 
-      // Add text fields
       data.forEach((key, value) {
         if (key != 'image' && key != 'id' && key != 'cv') {
           if (value != null) {
@@ -522,7 +519,6 @@ class ApiService {
         }
       });
 
-      // Add image files if present
       if (data['image'] != null && data['image'].toString().isNotEmpty) {
         print('Adding image file: ${data['image']}');
         try {
@@ -571,7 +567,6 @@ class ApiService {
         print('Warning: No CV file provided');
       }
 
-      // Get the auth token
       final token = await _storage.read(key: 'auth_token');
       if (token == null) {
         print('Error: No auth token found');
@@ -581,12 +576,10 @@ class ApiService {
         };
       }
 
-      // Log the request URL and headers
       print(
           'Making PUT request to: $baseUrl/seeker/update_profile_mobile/$userId');
       print('With token: ${token.substring(0, math.min(10, token.length))}...');
 
-      // Add more detailed error handling
       try {
         final response = await _dio.put(
           '$baseUrl/seeker/update_profile_mobile/$userId',
@@ -605,7 +598,8 @@ class ApiService {
         if (response.statusCode == 200) {
           return {
             'success': true,
-            'message': 'Profile updated successfully',
+            'message':
+                response.data['message'] ?? 'Profile updated successfully',
           };
         } else {
           return {
@@ -614,12 +608,29 @@ class ApiService {
           };
         }
       } on DioException catch (e) {
-        // Log detailed Dio error information
         print('DioException during profile update:');
         print('  Status code: ${e.response?.statusCode}');
         print('  Response data: ${e.response?.data}');
         print('  Request data: ${e.requestOptions.data}');
         print('  Request path: ${e.requestOptions.path}');
+
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 403) {
+          return {
+            'success': false,
+            'message': 'Profile update not allowed at this time',
+          };
+        } else if (statusCode == 400) {
+          return {
+            'success': false,
+            'message': 'All required fields must be filled',
+          };
+        } else if (statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'User or job seeker record not found',
+          };
+        }
 
         return {
           'success': false,
@@ -866,29 +877,38 @@ class ApiService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return {
           'success': true,
           'message': response.data['message'] ?? 'Successfully applied for job',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': response.data['message'] ?? 'Failed to apply for job',
-        };
-      }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 409) {
-        return {
-          'success': false,
-          'message': 'You have already applied for this job',
+          'applied_id': response.data['applied_id']
         };
       }
 
       return {
         'success': false,
-        'message': 'Network error: ${e.message}',
+        'message': response.data['message'] ?? 'Failed to apply for job',
       };
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final message =
+          e.response?.data['message'] ?? 'Network error: ${e.message}';
+
+      if (statusCode == 409) {
+        return {
+          'success': false,
+          'message': 'You have already applied for this job'
+        };
+      } else if (statusCode == 403) {
+        return {
+          'success': false,
+          'message': 'You must be approved in order to apply for this job'
+        };
+      } else if (statusCode == 400) {
+        return {'success': false, 'message': 'Missing required fields'};
+      }
+
+      return {'success': false, 'message': message};
     } catch (e) {
       return {
         'success': false,

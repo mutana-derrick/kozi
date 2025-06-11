@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/utils/form_validation.dart';
 
-final addressInfoErrorsProvider =
-    StateProvider<Map<String, String?>>((ref) => {});
+final addressInfoErrorsProvider = StateProvider<Map<String, String?>>((ref) => {});
 
 class AddressInfoSection extends ConsumerStatefulWidget {
   const AddressInfoSection({super.key});
@@ -14,22 +13,42 @@ class AddressInfoSection extends ConsumerStatefulWidget {
 }
 
 class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
-  
+  late TextEditingController _districtController;
+  late TextEditingController _sectorController;
+  late TextEditingController _cellController;
+  late TextEditingController _villageController;
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = ref.read(profileProvider);
+    _districtController = TextEditingController(text: profile.district);
+    _sectorController = TextEditingController(text: profile.sector);
+    _cellController = TextEditingController(text: profile.cell);
+    _villageController = TextEditingController(text: profile.village);
+  }
+
+  @override
+  void dispose() {
+    _districtController.dispose();
+    _sectorController.dispose();
+    _cellController.dispose();
+    _villageController.dispose();
+    super.dispose();
+  }
+
   bool validateFields() {
-    final ref = this.ref;
     final profile = ref.read(profileProvider);
     final errors = <String, String?>{};
     bool isValid = true;
 
-    // Validate province
     final provinceError =
-        FormValidation.validateDropdown(profile.province, 'province');
+        FormValidation.validateDropdown(profile.province, 'Province');
     if (provinceError != null) {
       errors['province'] = provinceError;
       isValid = false;
     }
 
-    // Validate district
     final districtError =
         FormValidation.validateRequired(profile.district, 'District');
     if (districtError != null) {
@@ -37,7 +56,6 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
       isValid = false;
     }
 
-    // Validate sector
     final sectorError =
         FormValidation.validateRequired(profile.sector, 'Sector');
     if (sectorError != null) {
@@ -45,14 +63,12 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
       isValid = false;
     }
 
-    // Validate cell
     final cellError = FormValidation.validateRequired(profile.cell, 'Cell');
     if (cellError != null) {
       errors['cell'] = cellError;
       isValid = false;
     }
 
-    // Validate village
     final villageError =
         FormValidation.validateRequired(profile.village, 'Village');
     if (villageError != null) {
@@ -83,7 +99,6 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
           ),
           const SizedBox(height: 16),
 
-          // Province
           buildDropdownField(
             context,
             label: 'Province',
@@ -102,10 +117,9 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
           ),
           const SizedBox(height: 16),
 
-          // District
           buildEditableField(
             label: 'District',
-            value: profile.district,
+            controller: _districtController,
             errorText: errors['district'],
             isRequired: true,
             onChanged: (val) {
@@ -117,10 +131,9 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
           ),
           const SizedBox(height: 16),
 
-          // Sector
           buildEditableField(
             label: 'Sector',
-            value: profile.sector,
+            controller: _sectorController,
             errorText: errors['sector'],
             isRequired: true,
             onChanged: (val) {
@@ -132,10 +145,9 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
           ),
           const SizedBox(height: 16),
 
-          // Cell
           buildEditableField(
             label: 'Cell',
-            value: profile.cell,
+            controller: _cellController,
             errorText: errors['cell'],
             isRequired: true,
             onChanged: (val) {
@@ -147,10 +159,9 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
           ),
           const SizedBox(height: 16),
 
-          // Village
           buildEditableField(
             label: 'Village',
-            value: profile.village,
+            controller: _villageController,
             errorText: errors['village'],
             isRequired: true,
             onChanged: (val) {
@@ -168,16 +179,12 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
 
   Widget buildEditableField({
     required String label,
-    required String value,
+    required TextEditingController controller,
     required Function(String) onChanged,
     String? errorText,
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final controller = TextEditingController(text: value);
-    controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: controller.text.length));
-
     final hasError = errorText != null;
 
     return Column(
@@ -231,11 +238,15 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              suffixIcon: hasError ? const Icon(Icons.error, color: ValidationColors.errorRed) : null,
+              suffixIcon: hasError
+                  ? const Icon(Icons.error, color: ValidationColors.errorRed)
+                  : null,
             ),
             style: TextStyle(
               fontSize: 16,
-              color: hasError ? ValidationColors.errorRed : const Color(0xFF5C6BC0),
+              color: hasError
+                  ? ValidationColors.errorRed
+                  : const Color(0xFF5C6BC0),
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -320,13 +331,16 @@ class AddressInfoSectionState extends ConsumerState<AddressInfoSection> {
                       value,
                       style: TextStyle(
                         fontSize: 16,
-                        color: hasError ? ValidationColors.errorRed : const Color(0xFF5C6BC0),
+                        color: hasError
+                            ? ValidationColors.errorRed
+                            : const Color(0xFF5C6BC0),
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   if (hasError)
-                    const Icon(Icons.error, color: ValidationColors.errorRed, size: 20),
+                    const Icon(Icons.error,
+                        color: ValidationColors.errorRed, size: 20),
                 ],
               ),
               isExpanded: true,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:kozi/authentication/job_seeker/providers/auth_provider.dart';
 import 'package:kozi/authentication/job_seeker/providers/profile_provider.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/address_info_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/profile_form_sections/personal_info_section.dart';
@@ -10,6 +10,7 @@ import 'package:kozi/dashboard/job_seeker/widgets/profile_image_section.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 
 import 'package:kozi/shared/progress_bar.dart';
+import 'package:kozi/shared/show_result_dialog.dart';
 
 class SeekerProfileScreen extends ConsumerWidget {
   const SeekerProfileScreen({super.key});
@@ -29,15 +30,115 @@ class _ProfileScreenContent extends ConsumerStatefulWidget {
 
 class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Keys for accessing section validation methods
   final GlobalKey<PersonalInfoSectionState> _personalInfoKey = GlobalKey();
   final GlobalKey<AddressInfoSectionState> _addressInfoKey = GlobalKey();
   final GlobalKey<TechnicalInfoSectionState> _technicalInfoKey = GlobalKey();
 
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserProfile();
+    });
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final apiService = ref.watch(apiServiceProvider);
+      final userId = await apiService.getUserId();
+
+      if (userId == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final result = await apiService.getUserProfile(userId);
+      if (result['success'] && result['data'] != null) {
+        final userData = result['data'];
+        final profileNotifier = ref.read(profileProvider.notifier);
+
+        // Map DB fields to provider
+        profileNotifier.updateFirstName(userData['first_name'] ?? '');
+        profileNotifier.updateLastName(userData['last_name'] ?? '');
+        profileNotifier.updateFathersName(userData['fathers_name'] ?? '');
+        profileNotifier.updateMothersName(userData['mothers_name'] ?? '');
+        profileNotifier.updateTelephone(userData['telephone'] ?? '');
+        profileNotifier.updateProvince(userData['province'] ?? '');
+        profileNotifier.updateDistrict(userData['district'] ?? '');
+        profileNotifier.updateSector(userData['sector'] ?? '');
+        profileNotifier.updateCell(userData['cell'] ?? '');
+        profileNotifier.updateVillage(userData['village'] ?? '');
+        profileNotifier.updateDateOfBirth(userData['date_of_birth'] ?? '');
+        profileNotifier.updateGender(userData['gender'] ?? '');
+        profileNotifier.updateDisability(userData['disability'] ?? 'None');
+        profileNotifier.updateExpectedSalary(userData['salary'] ?? '');
+        profileNotifier.updateSkills(userData['bio'] ?? '');
+        profileNotifier.updateCategory(userData['category_id'] ?? '');
+
+        // Preload file paths for image, id and cv
+        profileNotifier.updateProfileImagePath(userData['image'] ?? '');
+        profileNotifier.updateNewIdCardPath(userData['id'] ?? '');
+        profileNotifier.updateCvPath(userData['cv'] ?? '');
+
+        // Navigate based on profile completeness
+        if (userData['province'] != null &&
+            userData['province'].toString().isNotEmpty) {
+          profileNotifier.goToStep(1);
+          if (userData['salary'] != null &&
+              userData['salary'].toString().isNotEmpty) {
+            profileNotifier.goToStep(2);
+          }
+        }
+      }
+    } catch (e) {
+      // Handle error - could show a snackbar or error dialog
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading profile: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
+
+    // Show loading indicator while data is being loaded
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFEA60A7),
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: const Text(
+            'Profile',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFEA60A7),
+          ),
+        ),
+      );
+    }
 
     // Calculate header height (approximation)
     const headerHeight =
@@ -137,16 +238,18 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
                         bool canNavigate = true;
                         if (step > profileState.currentStep) {
                           // Only validate if moving forward
-                          canNavigate = _validateCurrentSection(profileState.currentStep);
+                          canNavigate =
+                              _validateCurrentSection(profileState.currentStep);
                         }
-                        
+
                         if (canNavigate) {
                           ref.read(profileProvider.notifier).goToStep(step);
                         } else {
                           // Show error message if validation fails
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Please fill in all required fields before proceeding.'),
+                              content: Text(
+                                  'Please fill in all required fields before proceeding.'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -248,39 +351,52 @@ class _ProfileScreenContentState extends ConsumerState<_ProfileScreenContent> {
               ),
               elevation: 0,
             ),
-            onPressed: () {
+            onPressed: () async {
               if (currentStep < 2) {
                 // Validate current section before proceeding
                 if (_validateCurrentSection(currentStep)) {
                   ref.read(profileProvider.notifier).goToNextStep();
                 } else {
-                  // Show error message if validation fails
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please fill in all required fields before proceeding.'),
-                      backgroundColor: Colors.red,
-                    ),
+                  // Show error dialog if validation fails
+                  await showResultDialog(
+                    context: context,
+                    message:
+                        'Please fill in all required fields before proceeding.',
+                    isSuccess: false,
                   );
                 }
               } else {
                 // Final step - validate and save profile
                 if (_validateCurrentSection(currentStep)) {
-                  // Show success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Profile updated successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  // You can add additional logic here to save the profile
-                  // For example: ref.read(profileProvider.notifier).saveProfile();
+                  try {
+                    // Call the submit profile method from provider
+                    await ref.read(profileProvider.notifier).submitProfile();
+
+                    // Show success dialog
+                    if (context.mounted) {
+                      await showResultDialog(
+                        context: context,
+                        message: 'Profile updated successfully!',
+                        isSuccess: true,
+                      );
+                    }
+                  } catch (e) {
+                    // Show error dialog if submission fails
+                    if (context.mounted) {
+                      await showResultDialog(
+                        context: context,
+                        message: 'Failed to update profile. Please try again.',
+                        isSuccess: false,
+                      );
+                    }
+                  }
                 } else {
-                  // Show error message if validation fails
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please fill in all required fields before saving.'),
-                      backgroundColor: Colors.red,
-                    ),
+                  // Show error dialog if validation fails
+                  await showResultDialog(
+                    context: context,
+                    message:
+                        'Please fill in all required fields before saving.',
+                    isSuccess: false,
                   );
                 }
               }

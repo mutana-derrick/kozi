@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_bottom_navbar.dart';
 import 'package:kozi/dashboard/job_seeker/widgets/custom_header.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentScreen extends ConsumerWidget {
   const PaymentScreen({super.key});
@@ -202,7 +203,15 @@ class PaymentScreen extends ConsumerWidget {
   Widget _buildPayButton() {
     return Center(
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () async {
+          const ussdCode = '*182*8*7*06778#';
+          final encodedUssd = Uri.encodeComponent(ussdCode);
+          final uri = Uri.parse('tel:$encodedUssd');
+
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri);
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFEA60A7),
           foregroundColor: Colors.white,

@@ -8,7 +8,7 @@ import 'package:kozi/utils/form_validation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 
-final technicalInfoErrorsProvider =
+final technicalInfoErrorsProvider = 
     StateProvider<Map<String, String?>>((ref) => {});
 
 class TechnicalInfoSection extends ConsumerStatefulWidget {
@@ -21,14 +21,23 @@ class TechnicalInfoSection extends ConsumerStatefulWidget {
 
 class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _skillsController;
 
   @override
   void initState() {
     super.initState();
-    // Load category types when the widget initializes
+    final profile = ref.read(profileProvider);
+    _skillsController = TextEditingController(text: profile.skills);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(categoryTypesProvider);
     });
+  }
+
+  @override
+  void dispose() {
+    _skillsController.dispose();
+    super.dispose();
   }
 
   bool validateFields() {
@@ -36,7 +45,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
     final errors = <String, String?>{};
     bool isValid = true;
 
-    // Validate expected salary
     final salaryError = FormValidation.validateDropdown(
         profile.expectedSalary, 'expected salary');
     if (salaryError != null) {
@@ -44,7 +52,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       isValid = false;
     }
 
-    // Validate category
     final categoryError =
         FormValidation.validateDropdown(profile.category, 'category');
     if (categoryError != null) {
@@ -52,7 +59,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       isValid = false;
     }
 
-    // Validate skills
     final skillsError =
         FormValidation.validateRequired(profile.skills, 'Skills');
     if (skillsError != null) {
@@ -60,7 +66,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       isValid = false;
     }
 
-    // Validate ID Card
     final idCardError =
         FormValidation.validateRequired(profile.newIdCardPath, 'ID Card');
     if (idCardError != null) {
@@ -68,7 +73,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       isValid = false;
     }
 
-    // Validate Profile Image
     final profileImageError = FormValidation.validateRequired(
         profile.profileImagePath, 'Profile Image');
     if (profileImageError != null) {
@@ -76,7 +80,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       isValid = false;
     }
 
-    // Validate CV
     final cvError =
         FormValidation.validateRequired(profile.cvPath, 'CV/Resume');
     if (cvError != null) {
@@ -92,8 +95,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
     final errors = ref.watch(technicalInfoErrorsProvider);
-
-    // Watch category data
     final categoryTypesAsync = ref.watch(categoryTypesProvider);
     final selectedCategoryType = ref.watch(selectedCategoryTypeProvider);
     final filteredCategories = ref.watch(filteredCategoriesProvider);
@@ -112,8 +113,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Expected Salary
           buildDropdownField(
             context,
             label: 'Expected Salary',
@@ -142,8 +141,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
             },
           ),
           const SizedBox(height: 16),
-
-          // Category Type dropdown
           categoryTypesAsync.when(
             data: (categoryTypes) {
               final typeNames = getAllCategoryTypeNames(categoryTypes);
@@ -152,17 +149,17 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
                 label: 'Category Type',
                 value: selectedCategoryType != null
                     ? categoryTypes.firstWhere(
-                          (type) =>
-                              type['type_id'].toString() ==
-                              selectedCategoryType,
-                          orElse: () => {'type_name': 'Select Category Type'},
-                        )['type_name'] ??
+                            (type) =>
+                                type['type_id'].toString() ==
+                                selectedCategoryType,
+                            orElse: () => {
+                                  'type_name': 'Select Category Type'
+                                })['type_name'] ??
                         'Select Category Type'
                     : 'Select Category Type',
                 items: typeNames,
                 onChanged: (value) {
                   if (value != null) {
-                    // Find the type ID corresponding to the selected name
                     final typeId =
                         getCategoryTypeIdByName(categoryTypes, value);
                     if (typeId != null) {
@@ -179,8 +176,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
             error: (_, __) => const Text('Failed to load category types'),
           ),
           const SizedBox(height: 16),
-
-          // Category dropdown (depends on selected category type)
           if (selectedCategoryType != null)
             buildDropdownField(
               context,
@@ -206,12 +201,10 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
               isRequired: true,
             ),
           const SizedBox(height: 16),
-
-          // Skills and Capabilities
           buildMultilineFormField(
             context,
             label: 'Skills and Capabilities',
-            value: profile.skills,
+            controller: _skillsController,
             errorText: errors['skills'],
             isRequired: true,
             onChanged: (value) {
@@ -224,8 +217,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
             maxLines: 5,
           ),
           const SizedBox(height: 16),
-
-          // File uploads
           buildFileUploadField(
             context,
             label: 'ID Card',
@@ -249,7 +240,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
             },
           ),
           const SizedBox(height: 16),
-
           buildFileUploadField(
             context,
             label: 'Profile Image',
@@ -273,7 +263,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
             },
           ),
           const SizedBox(height: 16),
-
           buildFileUploadField(
             context,
             label: 'CV/Resume',
@@ -294,35 +283,24 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
               });
             },
           ),
-          // Removed navigation buttons - they are now handled by the parent screen
         ],
       ),
     );
   }
 
-  // File pickers with proper image picker and file picker implementation
   Future<void> _pickImage(
       BuildContext context, Function(String) onPicked) async {
     try {
-      final ImagePicker picker = ImagePicker();
+      final picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-      if (image != null) {
-        print('Image picked: ${image.path}');
-        // Verify file exists
-        final file = File(image.path);
-        final exists = await file.exists();
-        print('File exists: $exists');
-        if (exists) {
-          onPicked(image.path);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Selected file does not exist')),
-          );
-        }
+      if (image != null && await File(image.path).exists()) {
+        onPicked(image.path);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selected file does not exist')),
+        );
       }
     } catch (e) {
-      print('Error picking image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: $e')),
       );
@@ -333,7 +311,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
       BuildContext context, Function(String) onPicked) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
-
       if (result != null) {
         onPicked(result.files.single.path!);
       }
@@ -347,16 +324,12 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
   Widget buildMultilineFormField(
     BuildContext context, {
     required String label,
-    required String value,
+    required TextEditingController controller,
     required Function(String) onChanged,
     String? errorText,
     bool isRequired = false,
     int maxLines = 1,
   }) {
-    final TextEditingController controller = TextEditingController(text: value);
-    controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: controller.text.length));
-
     final hasError = errorText != null;
 
     return Column(
@@ -438,11 +411,112 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
     );
   }
 
+  Widget buildDropdownField(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required List<String> items,
+    required Function(String?) onChanged,
+    String? errorText,
+    bool isRequired = false,
+  }) {
+    final hasError = errorText != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color.fromARGB(255, 78, 80, 80),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: ValidationColors.errorRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasError ? ValidationColors.errorRed : Colors.transparent,
+              width: hasError ? 1.0 : 0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: items.contains(value) ? value : null,
+              hint: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: hasError
+                      ? ValidationColors.errorRed
+                      : const Color(0xFF5C6BC0),
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Color(0xFF5C6BC0)),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF5C6BC0),
+                fontWeight: FontWeight.w400,
+              ),
+              onChanged: onChanged,
+              items: items.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 5),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: ValidationColors.errorRed,
+                fontSize: 12,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget buildFileUploadField(
     BuildContext context, {
     required String label,
     required String fileName,
-    required Function() onTap,
+    required VoidCallback onTap,
     String? errorText,
     bool isRequired = false,
   }) {
@@ -541,123 +615,6 @@ class TechnicalInfoSectionState extends ConsumerState<TechnicalInfoSection> {
               ),
             ),
           ],
-        ),
-        if (hasError)
-          Padding(
-            padding: const EdgeInsets.only(top: 5, left: 5),
-            child: Text(
-              errorText,
-              style: const TextStyle(
-                color: ValidationColors.errorRed,
-                fontSize: 12,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget buildDropdownField(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?) onChanged,
-    String? errorText,
-    bool isRequired = false,
-  }) {
-    final hasError = errorText != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color.fromARGB(255, 78, 80, 80),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (isRequired)
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(
-                    color: ValidationColors.errorRed,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: hasError ? ValidationColors.errorRed : Colors.transparent,
-              width: hasError ? 1.0 : 0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 2,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: items.contains(value) ? value : null,
-              hint: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: hasError
-                            ? ValidationColors.errorRed
-                            : const Color(0xFF5C6BC0),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  if (hasError)
-                    const Icon(Icons.error,
-                        color: ValidationColors.errorRed, size: 20),
-                ],
-              ),
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down,
-                  color: Color(0xFF5C6BC0)),
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF5C6BC0),
-                fontWeight: FontWeight.w400,
-              ),
-              onChanged: onChanged,
-              items: items.map<DropdownMenuItem<String>>((String item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(
-                    item,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF5C6BC0),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
         ),
         if (hasError)
           Padding(
